@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hardini - Technology Meets Experiences</title>
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌱</text></svg>">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#ca8a04">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="app.css?v=2">
+    <link rel="stylesheet" href="hardini-auth.css">
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/idb@8/build/umd.js"></script>
+    <script>
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(reg => console.log('Service Worker registered!', reg))
+                    .catch(err => console.log('Service Worker registration failed: ', err));
+            });
+        }
+
+        firebase.initializeApp(firebaseConfig);
+        firebase.auth().onAuthStateChanged(user => {
+            if (!user) { window.location.href = 'login.html'; }
+            else {
+                const isGoogleUser = user.providerData.some(p => p.providerId === 'google.com');
+                if (!user.emailVerified && !isGoogleUser) { window.location.href = 'login.html?unverified=true'; }
+            }
+        });
+    </script>
+</head>
+
+<body>
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <span class="sidebar-logo"><span>🌱</span>HARDINI</span>
+        </div>
+        <nav class="sidebar-nav">
+            <button class="nav-item active" data-page="home"><span class="nav-icon">🏠</span><span
+                    class="nav-label">Home</span></button>
+            <button class="nav-item" data-page="supply-chain"><span class="nav-icon">🔗</span><span
+                    class="nav-label">Supply Chain</span></button>
+            <button class="nav-item" data-page="connect"><span class="nav-icon">🤝</span><span
+                    class="nav-label">Connect</span></button>
+            <button class="nav-item" data-page="reels"><span class="nav-icon">🎬</span><span
+                    class="nav-label">AgriReels</span></button>
+            <button class="nav-item" data-page="soilprobe"><span class="nav-icon">📡</span><span
+                    class="nav-label">SoilProbe</span></button>
+            <button class="nav-item" data-page="alerts"><span class="nav-icon">🔔</span><span class="nav-label">Alerts &
+                    Weather</span></button>
+            <button class="nav-item" data-page="chat"><span class="nav-icon">🤖</span><span class="nav-label">Hardini
+                    AI</span></button>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="profile-dropdown" id="profileDropdown">
+                <button class="dropdown-item" onclick="openModal('editProfileModal')">👤 Edit Profile</button>
+                <button class="dropdown-item" onclick="openModal('ordersModal'); loadOrders();">📦 My Orders</button>
+                <button class="dropdown-item" onclick="openModal('settingsModal')">⚙️ Settings</button>
+                <button class="dropdown-item danger" onclick="logout()">🚪 Logout</button>
+            </div>
+            <div class="sidebar-user" id="sidebarUser" onclick="toggleProfileDropdown()">
+                <div class="user-avatar" id="userAvatarInitial">H</div>
+                <div class="user-info">
+                    <div class="user-name" id="userName">Hardini User</div>
+                    <div class="user-email" id="userEmail">user@hardini.com</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ===== MOBILE BOTTOM NAV ===== -->
+    <nav class="mobile-nav">
+        <div class="mobile-nav-items">
+            <button class="mobile-nav-item active" data-page="home"><span class="m-icon">🏠</span>Home</button>
+            <button class="mobile-nav-item" data-page="reels"><span class="m-icon">🎬</span>Reels</button>
+            <button class="mobile-nav-item" data-page="connect"><span class="m-icon">🤝</span>Connect</button>
+            <button class="mobile-nav-item" data-page="soilprobe"><span class="m-icon">📡</span>IoT</button>
+            <button class="mobile-nav-item" data-page="alerts"><span class="m-icon">🔔</span>Alerts</button>
+            <button class="mobile-nav-item" data-page="chat"><span class="m-icon">🤖</span>AI Chat</button>
+        </div>
+    </nav>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <main class="main-content">
+
+        <!-- ===== ALERTS PAGE ===== -->
+        <div class="page-view" id="page-alerts">
+
+            <!-- Weather Hero Banner -->
+            <div class="weather-hero" id="weatherHero">
+                <div class="weather-hero-bg"></div>
+                <div class="weather-hero-content">
+                    <div class="weather-hero-left">
+                        <div class="weather-icon-big" id="weatherIconBig">🌤️</div>
+                        <div>
+                            <div class="weather-temp-big" id="weatherTempBig">--°</div>
+                            <div class="weather-condition-text" id="weatherCondition">Loading...</div>
+                        </div>
+                    </div>
+                    <div class="weather-hero-right">
+                        <div class="weather-location-label" id="weatherLocation">📍 Detecting location...</div>
+                        <div class="weather-date" id="weatherDate"></div>
+                        <div class="weather-feels" id="weatherFeels">Feels like --°</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Weather Stats Grid -->
+            <div class="weather-stats-grid" id="weatherStatsGrid">
+                <div class="weather-stat-card">
+                    <div class="ws-icon">💧</div>
+                    <div class="ws-value" id="wsHumidity">--%</div>
+                    <div class="ws-label">Humidity</div>
+                </div>
+                <div class="weather-stat-card">
+                    <div class="ws-icon">💨</div>
+                    <div class="ws-value" id="wsWind">-- km/h</div>
+                    <div class="ws-label">Wind Speed</div>
+                </div>
+                <div class="weather-stat-card">
+                    <div class="ws-icon">☀️</div>
+                    <div class="ws-value" id="wsUV">--</div>
+                    <div class="ws-label">UV Index</div>
+                </div>
+                <div class="weather-stat-card">
+                    <div class="ws-icon">🌡️</div>
+                    <div class="ws-value" id="wsPressure">-- hPa</div>
+                    <div class="ws-label">Pressure</div>
+                </div>
+                <div class="weather-stat-card">
+                    <div class="ws-icon">👁️</div>
+                    <div class="ws-value" id="wsVisibility">-- km</div>
+                    <div class="ws-label">Visibility</div>
+                </div>
+                <div class="weather-stat-card">
+                    <div class="ws-icon">💦</div>
+                    <div class="ws-value" id="wsDewpoint">--°</div>
+                    <div class="ws-label">Dew Point</div>
+                </div>
+                <div class="weather-stat-card">
+                    <div class="ws-icon">🌧️</div>
+                    <div class="ws-value" id="wsRain">-- mm</div>
+                    <div class="ws-label">Precipitation</div>
+                </div>
+                <div class="weather-stat-card">
+                    <div class="ws-icon">🧭</div>
+                    <div class="ws-value" id="wsWindDir">--°</div>
+                    <div class="ws-label">Wind Direction</div>
+                </div>
+            </div>
+
+            <!-- Hourly Forecast -->
+            <h3 class="section-title-weather">⏱️ Hourly Forecast</h3>
+            <div class="hourly-forecast-strip" id="hourlyForecast">
+                <div style="text-align:center;padding:20px;color:var(--text-muted);width:100%">Loading...</div>
+            </div>
+
+            <!-- 5-Day Forecast -->
+            <h3 class="section-title-weather">📅 5-Day Forecast</h3>
+            <div class="daily-forecast-grid" id="dailyForecast">
+                <div style="text-align:center;padding:20px;color:var(--text-muted);width:100%">Loading...</div>
+            </div>
+
+            <!-- Map & Air Quality Row -->
+            <div class="map-aqi-row">
+                <!-- Mappls Satellite Map -->
+                <div class="map-section">
+                    <h3 class="section-title-weather">🗺️ Your Farm Location</h3>
+                    <div class="map-container" id="mapContainer">
+                        <div id="mapPlaceholder"
+                            style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted)">
+                            <span class="loader"></span> Loading Map...
+                        </div>
+                    </div>
+                </div>
+                <!-- Air Quality -->
+                <div class="aqi-section">
+                    <h3 class="section-title-weather">🌬️ Air Quality</h3>
+                    <div class="aqi-card" id="aqiCard">
+                        <div class="aqi-number" id="aqiNumber">--</div>
+                        <div class="aqi-level" id="aqiLevel">Loading...</div>
+                        <div class="aqi-bar-container">
+                            <div class="aqi-bar" id="aqiBar"></div>
+                        </div>
+                        <div class="aqi-bar-labels">
+                            <span>Good</span><span>Moderate</span><span>Poor</span><span>Hazardous</span>
+                        </div>
+                        <div class="aqi-details" id="aqiDetails">
+                            <div class="aqi-detail-item"><span class="aqi-d-label">PM2.5</span><span class="aqi-d-value"
+                                    id="aqiPM25">--</span></div>
+                            <div class="aqi-detail-item"><span class="aqi-d-label">PM10</span><span class="aqi-d-value"
+                                    id="aqiPM10">--</span></div>
+                            <div class="aqi-detail-item"><span class="aqi-d-label">NO₂</span><span class="aqi-d-value"
+                                    id="aqiNO2">--</span></div>
+                            <div class="aqi-detail-item"><span class="aqi-d-label">O₃</span><span class="aqi-d-value"
+                                    id="aqiO3">--</span></div>
+                            <div class="aqi-detail-item"><span class="aqi-d-label">SO₂</span><span class="aqi-d-value"
+                                    id="aqiSO2">--</span></div>
+                            <div class="aqi-detail-item"><span class="aqi-d-label">CO</span><span class="aqi-d-value"
+                                    id="aqiCO">--</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alerts Feed -->
+            <h3 class="section-title-weather">📢 Latest Advisories & Alerts</h3>
+            <div id="alertsFeed" class="alerts-feed">
+                <div style="text-align:center;padding:30px;color:var(--text-muted)"><span class="loader"></span> Loading
+                    alerts...</div>
+            </div>
+        </div>
+
+        <!-- ===== HOME PAGE ===== -->
+        <div class="page-view active" id="page-home">
+            <div class="hero-banner"
+                style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+                <div style="flex: 1; min-width: 300px;">
+                    <h1>Welcome to Hardini 🌾</h1>
+                    <h2>Technology Meets Experiences</h2>
+                    <p>Empowering farmers with AI-driven insights and IoT monitoring tools for modern agriculture.</p>
+                </div>
+
+                <div class="hero-call-widget"
+                    style="background: rgba(0,0,0,0.4); padding: 24px; border-radius: 20px; border: 1px solid var(--border-color); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); width: 100%; max-width: 340px; box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
+                    <h3
+                        style="font-size: 18px; font-family: Outfit, sans-serif; margin-bottom: 8px; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                        <span
+                            style="background: rgba(234, 179, 8, 0.2); padding: 6px; border-radius: 50%; font-size: 16px;">📞</span>
+                        Talk to Hardini AI
+                    </h3>
+                    <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">Enter your phone
+                        number for an instant AI voice call.</p>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="tel" id="indusMobileNumber" placeholder="9876543210"
+                            style="flex: 1; padding: 12px 16px; border-radius: 12px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.05); color: #fff; font-size: 14px; outline: none; width: 100%; transition: all 0.3s;"
+                            onfocus="this.style.borderColor='var(--accent)'; this.style.boxShadow='0 0 0 2px var(--accent-glow)';"
+                            onblur="this.style.borderColor='var(--border-color)'; this.style.boxShadow='none';">
+                        <button onclick="triggerIndusCall()" id="indusCallBtn"
+                            style="padding: 12px 20px; border-radius: 12px; background: linear-gradient(135deg, var(--accent-dark), var(--accent)); color: #fff; border: 1px solid rgba(255,255,255,0.1); font-weight: 600; cursor: pointer; transition: all 0.3s; white-space: nowrap; box-shadow: 0 4px 15px var(--accent-glow);"
+                            onmouseover="this.style.transform='translateY(-2px)';"
+                            onmouseout="this.style.transform='translateY(0)';">Call Now</button>
+                    </div>
+                </div>
+            </div>
+            <div class="stat-grid" id="homeInsightsGrid">
+                <div class="stat-card">
+                    <div class="stat-number" id="insightWeatherTemp">--°C</div>
+                    <div class="stat-label">Current Weather</div>
+                    <div class="stat-trend" id="insightWeatherDesc" style="color:var(--text-secondary)">Checking...
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="insightSoil">Good</div>
+                    <div class="stat-label">Soil Health</div>
+                    <div class="stat-trend" id="insightSoilDesc" style="color:var(--text-secondary)">Optimal moisture
+                        levels</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="insightMarket">Wheat ↑</div>
+                    <div class="stat-label">Trending Crop</div>
+                    <div class="stat-trend" style="color:var(--text-secondary)">₹850/bag today</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="insightAqi">--</div>
+                    <div class="stat-label">Air Quality</div>
+                    <div class="stat-trend" id="insightAqiDesc" style="color:var(--text-secondary)">Checking...</div>
+                </div>
+            </div>
+            <h2 style="margin-bottom:20px">🚀 Quick Actions</h2>
+            <div class="card-grid" style="margin-bottom:32px">
+                <div class="glass-card" style="cursor:pointer" onclick="navigateTo('chat')">
+                    <div class="card-icon-lg">🤖</div>
+                    <div class="card-title">AI Farm Assistant</div>
+                    <div class="card-desc">Get instant answers on crop management, pest control, and farming techniques.
+                    </div>
+                </div>
+                <div class="glass-card" style="cursor:pointer" onclick="navigateTo('soilprobe')">
+                    <div class="card-icon-lg">📡</div>
+                    <div class="card-title">Monitor Soil</div>
+                    <div class="card-desc">Connect IoT sensors and track soil health in real-time from your devices.
+                    </div>
+                </div>
+                <div class="glass-card" style="cursor:pointer" onclick="navigateTo('reels')">
+                    <div class="card-icon-lg">🎬</div>
+                    <div class="card-title">Watch AgriReels</div>
+                    <div class="card-desc">Learn through short farming videos, tech demos, and expert tutorials.</div>
+                </div>
+            </div>
+            <h2 style="margin-bottom:20px; display: flex; justify-content: space-between; align-items: center;">
+                <span>🌾 Live Market Prices (Mandi)</span>
+                <span style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">Govt. Data
+                    (AGMARKNET)</span>
+            </h2>
+            <div class="mandi-grid" id="mandiGrid"
+                style="margin-bottom:32px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;">
+                <div style="text-align:center;padding:30px;color:var(--text-muted);grid-column: 1 / -1;"><span
+                        class="loader"></span> Loading live market data...</div>
+            </div>
+
+            <h2 style="margin-bottom:20px">🌟 Featured Solutions</h2>
+            <div class="solutions-grid">
+                <div class="solution-card">
+                    <div class="solution-icon">🌾</div>
+                    <h4>Precision Agriculture</h4>
+                    <p>Leverage AI and satellite data for optimized farming decisions.</p>
+                    <div class="benefit-highlights"><span>📊 Data Analytics</span><span>🛰️ Satellite
+                            Maps</span><span>🤖 AI Recommendations</span></div>
+                    <ul class="solution-features">
+                        <li>Crop health monitoring</li>
+                        <li>Yield prediction models</li>
+                        <li>Weather-based alerts</li>
+                    </ul><button class="btn btn-primary btn-sm" onclick="navigateTo('soilprobe')">Explore →</button>
+                </div>
+                <div class="solution-card">
+                    <div class="solution-icon">💧</div>
+                    <h4>Smart Irrigation</h4>
+                    <p>Save water and boost yields with IoT-powered irrigation systems.</p>
+                    <div class="benefit-highlights"><span>💦 40% Water Saved</span><span>📈 25% Yield
+                            Boost</span><span>⚡ Auto Schedule</span></div>
+                    <ul class="solution-features">
+                        <li>Soil moisture sensors</li>
+                        <li>Automated scheduling</li>
+                        <li>Mobile control</li>
+                    </ul><button class="btn btn-primary btn-sm" onclick="navigateTo('soilprobe')">Learn More →</button>
+                </div>
+                <div class="solution-card">
+                    <div class="solution-icon">🔗</div>
+                    <h4>Direct Market Access</h4>
+                    <p>Connect directly with buyers and get fair prices for your produce.</p>
+                    <div class="benefit-highlights"><span>💰 Better Prices</span><span>🚚 Direct Delivery</span><span>📱
+                            Mobile Orders</span></div>
+                    <ul class="solution-features">
+                        <li>Buyer matching</li>
+                        <li>Price discovery</li>
+                        <li>Quality grading</li>
+                    </ul><button class="btn btn-primary btn-sm" onclick="navigateTo('supply-chain')">Get Started
+                        →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== SUPPLY CHAIN PAGE ===== -->
+        <div class="page-view" id="page-supply-chain">
+            <div class="page-header">
+                <h1>🔗 Supply Chain</h1>
+                <p>From farm to fork — transparent and efficient</p>
+            </div>
+            <div class="chain-flow">
+                <div class="chain-step">
+                    <div class="chain-node" onclick="openChainDetail('farmers')"><span class="chain-emoji">👨‍🌾</span>
+                        <h3>Farmers</h3>
+                        <ul class="chain-features">
+                            <li>Direct sourcing</li>
+                            <li>Fair pricing</li>
+                            <li>Quality control</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="chain-arrow">→</div>
+                <div class="chain-step">
+                    <div class="chain-node" onclick="openChainDetail('processing')"><span class="chain-emoji">🏭</span>
+                        <h3>Processing</h3>
+                        <ul class="chain-features">
+                            <li>Quality testing</li>
+                            <li>Packaging</li>
+                            <li>Certification</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="chain-arrow">→</div>
+                <div class="chain-step">
+                    <div class="chain-node" onclick="openChainDetail('distribution')"><span
+                            class="chain-emoji">🚚</span>
+                        <h3>Distribution</h3>
+                        <ul class="chain-features">
+                            <li>Cold chain logistics</li>
+                            <li>Route optimization</li>
+                            <li>Real-time tracking</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="chain-arrow">→</div>
+                <div class="chain-step">
+                    <div class="chain-node" onclick="openChainDetail('retail')"><span class="chain-emoji">🏪</span>
+                        <h3>Retail</h3>
+                        <ul class="chain-features">
+                            <li>Quality assured</li>
+                            <li>Best prices</li>
+                            <li>Fresh delivery</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="chain-arrow">→</div>
+                <div class="chain-step">
+                    <div class="chain-node" onclick="openChainDetail('consumers')"><span class="chain-emoji">👥</span>
+                        <h3>Consumers</h3>
+                        <ul class="chain-features">
+                            <li>Farm-to-fork</li>
+                            <li>Traceability</li>
+                            <li>Satisfaction</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top:32px">
+                <h2 style="margin-bottom:20px">📊 Supply Chain Impact</h2>
+                <div class="impact-stats">
+                    <div class="stat-card">
+                        <div class="stat-number">85%</div>
+                        <div class="stat-label">Wastage Reduction</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">3x</div>
+                        <div class="stat-label">Faster Delivery</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">40%</div>
+                        <div class="stat-label">Cost Savings</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">100%</div>
+                        <div class="stat-label">Traceability</div>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top:32px">
+                <h2 style="margin-bottom:12px">💡 Success Stories</h2>
+                <div class="story-card"><span class="farmer-name">Rajesh Kumar, Maharashtra</span>
+                    <p>"Since joining Hardini's supply chain, my income has increased by 160%. The direct market access
+                        eliminated middlemen entirely."</p>
+                </div>
+                <div class="story-card"><span class="farmer-name">Priya Sharma, Karnataka</span>
+                    <p>"The cold chain logistics ensured my produce reaches markets fresh. Wastage dropped from 30% to
+                        just 5%."</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== CONNECT PAGE ===== -->
+        <div class="page-view" id="page-connect">
+            <div class="page-header">
+                <h1>🤝 Connect & Network</h1>
+                <p>Build relationships, share knowledge, grow together</p>
+            </div>
+            <div class="connect-grid">
+                <div class="glass-card">
+                    <div class="card-icon-lg">👨‍🌾</div>
+                    <div class="card-title">Farmers Network</div>
+                    <div class="card-desc">Connect with 50,000+ progressive farmers across India. Share experiences and
+                        learn best practices.</div>
+                    <div class="card-tags"><span class="card-tag">Peer Learning</span><span class="card-tag">Regional
+                            Groups</span><span class="card-tag">Success Stories</span></div><button
+                        class="btn btn-primary btn-sm" onclick="openConnectModal('farmers')">Join Network →</button>
+                </div>
+                <div class="glass-card">
+                    <div class="card-icon-lg">🏢</div>
+                    <div class="card-title">Suppliers Hub</div>
+                    <div class="card-desc">Access verified suppliers for seeds, fertilizers, equipment, and more at
+                        wholesale prices.</div>
+                    <div class="card-tags"><span class="card-tag">Verified Sellers</span><span class="card-tag">Bulk
+                            Pricing</span><span class="card-tag">Direct Contact</span></div><button
+                        class="btn btn-primary btn-sm" onclick="openConnectModal('suppliers')">Find Suppliers →</button>
+                </div>
+                <div class="glass-card">
+                    <div class="card-icon-lg">📈</div>
+                    <div class="card-title">Market Connect</div>
+                    <div class="card-desc">Get real-time market prices, connect with buyers, and sell your produce at
+                        the best rates.</div>
+                    <div class="card-tags"><span class="card-tag">Live Prices</span><span class="card-tag">Buyer
+                            Matching</span><span class="card-tag">Price Alerts</span></div><button
+                        class="btn btn-primary btn-sm" onclick="openConnectModal('market')">View Markets →</button>
+                </div>
+                <div class="glass-card">
+                    <div class="card-icon-lg">🎓</div>
+                    <div class="card-title">Expert Panel</div>
+                    <div class="card-desc">Book consultations with agricultural scientists, agronomists, and farming
+                        technology experts.</div>
+                    <div class="card-tags"><span class="card-tag">1-on-1 Sessions</span><span class="card-tag">Video
+                            Calls</span><span class="card-tag">Free First Session</span></div><button
+                        class="btn btn-primary btn-sm" onclick="openConnectModal('experts')">Book Expert →</button>
+                </div>
+                <div class="glass-card">
+                    <div class="card-icon-lg">📚</div>
+                    <div class="card-title">Training Hub</div>
+                    <div class="card-desc">Free courses on modern farming techniques, soil management, and agri-business
+                        development.</div>
+                    <div class="card-tags"><span class="card-tag">Video Courses</span><span
+                            class="card-tag">Certificates</span><span class="card-tag">Offline Access</span></div>
+                    <button class="btn btn-primary btn-sm" onclick="openConnectModal('training')">Start Learning
+                        →</button>
+                </div>
+                <div class="glass-card">
+                    <div class="card-icon-lg">💬</div>
+                    <div class="card-title">Community Forum</div>
+                    <div class="card-desc">Ask questions, share solutions, and participate in discussions on all things
+                        agriculture.</div>
+                    <div class="card-tags"><span class="card-tag">Q&A</span><span
+                            class="card-tag">Discussion</span><span class="card-tag">Expert Answers</span></div><button
+                        class="btn btn-primary btn-sm" onclick="openConnectModal('forum')">Join Discussion →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== REELS PAGE ===== -->
+        <div class="page-view" id="page-reels">
+            <div class="page-header">
+                <h1>🎬 AgriReels</h1>
+                <p>Learn modern farming through short videos</p>
+            </div>
+            <div class="category-tabs" id="reelsTabs">
+                <button class="category-tab active" data-query="modern farming techniques India">🌾 Farming</button>
+                <button class="category-tab" data-query="agricultural technology drones India">🚁 AgriTech</button>
+                <button class="category-tab" data-query="organic farming India tips">🌿 Organic</button>
+                <button class="category-tab" data-query="hydroponics vertical farming India">💧 Hydroponics</button>
+                <button class="category-tab" data-query="dairy farming India modern">🐄 Dairy</button>
+            </div>
+            <div class="reels-grid" id="reelsGrid">
+                <div class="loading-spinner"></div>
+            </div>
+        </div>
+
+        <!-- ===== SOILPROBE PAGE ===== -->
+        <div class="page-view" id="page-soilprobe">
+            <div class="page-header" style="margin-bottom: 24px;">
+                <h1>📡 SoilProbe IoT Monitor</h1>
+                <p>Real-time soil health & micro-climate monitoring for your farm</p>
+            </div>
+
+            <div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap">
+                <button class="btn btn-primary" onclick="scanBLEDevices()">📡 Scan BLE Devices</button>
+                <button class="btn btn-secondary" onclick="openModal('addDeviceModal')">➕ Add Device Manually</button>
+                <button class="btn btn-secondary" onclick="loadDevices()">🔄 Refresh</button>
+            </div>
+
+            <!-- Real-time Metrics Grid (Enhanced) -->
+            <div class="soil-metrics-grid" id="soilMetricsDisplay"
+                style="display: none; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px;">
+                <!-- Moisture -->
+                <div class="glass-card"
+                    style="padding: 20px; text-align: center; position: relative; overflow: hidden;">
+                    <div style="position: absolute; top: -20px; right: -20px; font-size: 80px; opacity: 0.05;">💧</div>
+                    <div style="font-size: 28px; font-weight: 700; color: #3b82f6; margin-bottom: 4px;"
+                        id="valMoisture">--%</div>
+                    <div style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">Soil Moisture</div>
+                    <div style="margin-top: 12px; font-size: 12px; color: #10b981; background: rgba(16, 185, 129, 0.1); padding: 4px 8px; border-radius: 12px; display: inline-block;"
+                        id="statusMoisture">Optimal</div>
+                </div>
+
+                <!-- Temperature -->
+                <div class="glass-card"
+                    style="padding: 20px; text-align: center; position: relative; overflow: hidden;">
+                    <div style="position: absolute; top: -20px; right: -20px; font-size: 80px; opacity: 0.05;">🌡️</div>
+                    <div style="font-size: 28px; font-weight: 700; color: #ef4444; margin-bottom: 4px;" id="valTemp">
+                        --°C</div>
+                    <div style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">Soil Temp</div>
+                    <div
+                        style="margin-top: 12px; font-size: 12px; color: #10b981; background: rgba(16, 185, 129, 0.1); padding: 4px 8px; border-radius: 12px; display: inline-block;">
+                        Stable</div>
+                </div>
+
+                <!-- pH Level -->
+                <div class="glass-card"
+                    style="padding: 20px; text-align: center; position: relative; overflow: hidden;">
+                    <div style="position: absolute; top: -20px; right: -20px; font-size: 80px; opacity: 0.05;">🧪</div>
+                    <div style="font-size: 28px; font-weight: 700; color: #8b5cf6; margin-bottom: 4px;" id="valPH">--
+                    </div>
+                    <div style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">pH Level</div>
+                    <div
+                        style="margin-top: 12px; font-size: 12px; color: #f59e0b; background: rgba(245, 158, 11, 0.1); padding: 4px 8px; border-radius: 12px; display: inline-block;">
+                        Slightly Acidic</div>
+                </div>
+
+                <!-- NPK Nitrogen -->
+                <div class="glass-card"
+                    style="padding: 20px; text-align: center; position: relative; overflow: hidden; border: 1px solid rgba(16, 185, 129, 0.2);">
+                    <div style="font-size: 24px; font-weight: 700; color: #10b981; margin-bottom: 4px;" id="valN">--
+                        mg/kg</div>
+                    <div style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">Nitrogen (N)</div>
+                    <div
+                        style="width: 100%; height: 4px; background: rgba(255,255,255,0.1); margin-top: 12px; border-radius: 2px;">
+                        <div style="width: 65%; height: 100%; background: #10b981; border-radius: 2px;"></div>
+                    </div>
+                </div>
+
+                <!-- NPK Phosphorus -->
+                <div class="glass-card"
+                    style="padding: 20px; text-align: center; position: relative; overflow: hidden; border: 1px solid rgba(249, 115, 22, 0.2);">
+                    <div style="font-size: 24px; font-weight: 700; color: #f97316; margin-bottom: 4px;" id="valP">--
+                        mg/kg</div>
+                    <div style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">Phosphorus (P)</div>
+                    <div
+                        style="width: 100%; height: 4px; background: rgba(255,255,255,0.1); margin-top: 12px; border-radius: 2px;">
+                        <div style="width: 40%; height: 100%; background: #f97316; border-radius: 2px;"></div>
+                    </div>
+                </div>
+
+                <!-- NPK Potassium -->
+                <div class="glass-card"
+                    style="padding: 20px; text-align: center; position: relative; overflow: hidden; border: 1px solid rgba(217, 70, 239, 0.2);">
+                    <div style="font-size: 24px; font-weight: 700; color: #d946ef; margin-bottom: 4px;" id="valK">--
+                        mg/kg</div>
+                    <div style="font-size: 14px; color: var(--text-secondary); font-weight: 500;">Potassium (K)</div>
+                    <div
+                        style="width: 100%; height: 4px; background: rgba(255,255,255,0.1); margin-top: 12px; border-radius: 2px;">
+                        <div style="width: 80%; height: 100%; background: #d946ef; border-radius: 2px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Insights / AI Recommendations -->
+            <div class="glass-card" id="soilInsights"
+                style="display: none; margin-bottom: 32px; padding: 24px; border-left: 4px solid var(--accent);">
+                <div style="display: flex; align-items: flex-start; gap: 16px;">
+                    <div style="font-size: 32px;">🤖</div>
+                    <div>
+                        <h3 style="margin-bottom: 8px; font-size: 18px; color: #fff;">Hardini AI Analysis</h3>
+                        <p style="color: var(--text-secondary); line-height: 1.6; margin-bottom: 12px;" id="soilAiText">
+                            Analyzing soil parameters...</p>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;" id="soilAiTags">
+                            <!-- Tags injected here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Device list header -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h3 style="margin: 0;">📡 Connected Probes</h3>
+                <span
+                    style="font-size: 12px; color: var(--text-muted); background: rgba(255,255,255,0.05); padding: 4px 12px; border-radius: 12px;"
+                    id="lastSyncTime">Last sync: --</span>
+            </div>
+
+            <div class="device-grid" id="deviceGrid" style="margin-bottom: 32px;">
+                <div class="empty-state"><span class="empty-icon">📡</span>
+                    <h3>No devices yet</h3>
+                    <p>Scan for BLE devices or add one manually to start monitoring.</p>
+                </div>
+            </div>
+
+            <div class="chart-container glass-card" id="chartContainer" style="display:none; padding: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom:20px;">
+                    <h3 style="margin:0;">📈 Moisture & Temp Trends (24h)</h3>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn btn-sm"
+                            style="background: rgba(255,255,255,0.1); color: #fff; border:none; border-radius:4px; padding: 4px 12px;">1D</button>
+                        <button class="btn btn-sm"
+                            style="background: transparent; color: var(--text-muted); border:none; border-radius:4px; padding: 4px 12px;">1W</button>
+                        <button class="btn btn-sm"
+                            style="background: transparent; color: var(--text-muted); border:none; border-radius:4px; padding: 4px 12px;">1M</button>
+                    </div>
+                </div>
+                <!-- Fixed height chart container for responsiveness -->
+                <div style="height: 300px; width: 100%;">
+                    <canvas id="sensorChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== CHAT PAGE ===== -->
+        <div class="page-view" id="page-chat" style="padding: 20px;">
+            <div class="chat-page-container">
+                <div class="chat-hdr">
+                    <div class="chat-hdr-left">
+                        <div class="chat-hdr-avatar">🌱</div>
+                        <div>
+                            <div class="chat-hdr-title">Hardini AI</div>
+                            <div class="chat-hdr-sub" id="chatStatusText"><span class="status-dot online"></span> Online
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chat-hdr-actions">
+                        <select id="chatLang" title="Language">
+                            <option value="auto" selected>🌐 Auto</option>
+                            <option value="en">English</option>
+                            <option value="hi">हिंदी</option>
+                            <option value="mr">मराठी</option>
+                            <option value="te">తెలుగు</option>
+                            <option value="ta">தமிழ்</option>
+                            <option value="kn">ಕನ್ನಡ</option>
+                            <option value="pa">ਪੰਜਾਬੀ</option>
+                        </select>
+                        <button onclick="toggleTTS()" id="ttsToggle" title="Text-to-Speech">🔈</button>
+                        <button onclick="clearChat()" title="Clear Chat">🗑️</button>
+                    </div>
+                </div>
+                <div class="chat-quick">
+                    <button class="chat-chip" onclick="sendQuickChat('What crops should I plant this season?')">🌾
+                        Crops</button>
+                    <button class="chat-chip" onclick="sendQuickChat('How to protect crops from pests?')">🐛
+                        Pests</button>
+                    <button class="chat-chip" onclick="sendQuickChat('Best fertilizers for wheat?')">🧫
+                        Fertilizer</button>
+                    <button class="chat-chip" onclick="sendQuickChat('Weather forecast for farming')">🌤️
+                        Weather</button>
+                    <button class="chat-chip" onclick="sendQuickChat('Organic farming tips')">🌿 Organic</button>
+                </div>
+                <div class="chat-msgs" id="chatMessages">
+                    <div class="chat-msg bot">
+                        <div class="msg-avatar">🌱</div>
+                        <div class="msg-bubble">Hello! I'm your Hardini AI assistant. How can I help with your farming
+                            today? 🌾</div>
+                    </div>
+                </div>
+                <div class="chat-img-preview" id="chatImgPreview"><img id="chatPreviewImg" src="" alt=""><button
+                        class="remove-img" onclick="removeChatImage()">✕</button></div>
+                <div class="chat-input-bar">
+                    <input type="file" id="chatImageInput" accept="image/*" onchange="handleChatImage(event)">
+                    <button class="chat-action-btn" onclick="document.getElementById('chatImageInput').click()"
+                        title="Upload image">📷</button>
+                    <button class="chat-action-btn" id="voiceBtn" onclick="toggleVoiceInput()"
+                        title="Voice input">🎤</button>
+                    <input type="text" id="chatInput" placeholder="Ask about farming..."
+                        onkeydown="if(event.key==='Enter')sendChatMessage()">
+                    <button class="chat-send-btn" onclick="sendChatMessage()">➤</button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- ===== MODALS ===== -->
+
+    <!-- Edit Profile Modal -->
+    <div class="modal-overlay" id="editProfileModal">
+        <div class="modal-panel">
+            <div class="modal-header">
+                <h2>👤 Edit Profile</h2><button class="modal-close" onclick="closeModal('editProfileModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="editProfileForm">
+                    <div class="form-group"><label>Full Name</label><input type="text" id="editFullName"
+                            class="form-input" placeholder="Enter your full name"></div>
+                    <div class="form-group"><label>Phone Number</label><input type="tel" id="editPhone"
+                            class="form-input" placeholder="Enter your phone number"></div>
+                    <div class="form-group"><label>Farming Experience</label><select id="editFarmingExperience"
+                            class="form-select">
+                            <option value="">Select experience</option>
+                            <option value="beginner">Beginner (< 1 year)</option>
+                            <option value="intermediate">Intermediate (1-5 years)</option>
+                            <option value="experienced">Experienced (5-10 years)</option>
+                            <option value="expert">Expert (> 10 years)</option>
+                        </select></div>
+                    <div class="form-group"><label>User Type</label><select id="editUserType" class="form-select">
+                            <option value="customer">Customer</option>
+                            <option value="farmer">Farmer</option>
+                            <option value="farmer-supplier">Farmer Supplier</option>
+                        </select></div>
+                    <div class="form-group"><label>Location</label><input type="text" id="editLocation"
+                            class="form-input" placeholder="City, State"></div>
+                    <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:20px">
+                        <button type="button" class="btn btn-secondary"
+                            onclick="closeModal('editProfileModal')">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Orders Modal -->
+    <div class="modal-overlay" id="ordersModal">
+        <div class="modal-panel">
+            <div class="modal-header">
+                <h2>📦 My Orders</h2><button class="modal-close" onclick="closeModal('ordersModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="ordersLoading">
+                    <div class="loading-spinner"></div>
+                    <p style="text-align:center;color:var(--text-secondary)">Loading orders...</p>
+                </div>
+                <div id="ordersList"></div>
+                <div id="noOrders" style="display:none">
+                    <div class="empty-state"><span class="empty-icon">📦</span>
+                        <h3>No orders yet</h3>
+                        <p>You have no active orders.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal-panel">
+            <div class="modal-header">
+                <h2>⚙️ Settings</h2><button class="modal-close" onclick="closeModal('settingsModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-section">
+                    <h3>Notifications</h3>
+                    <div class="setting-item"><label class="switch"><input type="checkbox" id="emailNotifications"
+                                checked><span class="slider"></span></label>
+                        <div class="setting-info"><span class="setting-label">Email Notifications</span><span
+                                class="setting-desc">Receive order updates and promotions via email</span></div>
+                    </div>
+                    <div class="setting-item"><label class="switch"><input type="checkbox" id="smsNotifications"><span
+                                class="slider"></span></label>
+                        <div class="setting-info"><span class="setting-label">SMS Notifications</span><span
+                                class="setting-desc">Get important alerts via SMS</span></div>
+                    </div>
+                </div>
+                <div class="setting-section">
+                    <h3>Privacy & Security</h3>
+                    <div class="setting-item"><label class="switch"><input type="checkbox" id="profileVisibility"><span
+                                class="slider"></span></label>
+                        <div class="setting-info"><span class="setting-label">Profile Visibility</span><span
+                                class="setting-desc">Make your profile visible to other farmers</span></div>
+                    </div>
+                </div>
+                <div class="setting-section">
+                    <h3>Language & Region</h3>
+                    <div class="setting-item">
+                        <div class="setting-info"><span class="setting-label">Language</span><span
+                                class="setting-desc">Choose your preferred language</span></div><select
+                            id="languageSelect" class="language-select">
+                            <option value="en">English</option>
+                            <option value="hi">हिंदी (Hindi)</option>
+                            <option value="mr">मराठी (Marathi)</option>
+                            <option value="te">తెలుగు (Telugu)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="setting-section">
+                    <h3>Account Management</h3>
+                    <button class="btn btn-secondary btn-block" onclick="resetPassword()" style="margin-bottom:8px">🔑
+                        Reset Password</button>
+                    <button class="btn btn-secondary btn-block" onclick="exportData()" style="margin-bottom:8px">📊
+                        Export Data</button>
+                    <button class="btn btn-danger btn-block" onclick="showDeleteAccountConfirmation()">🗑️ Delete
+                        Account</button>
+                </div>
+                <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:20px">
+                    <button class="btn btn-secondary" onclick="closeModal('settingsModal')">Cancel</button>
+                    <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reset Password Modal -->
+    <div class="modal-overlay" id="resetPasswordModal">
+        <div class="modal-panel" style="max-width:480px">
+            <div class="modal-header">
+                <h2>🔑 Reset Password</h2><button class="modal-close"
+                    onclick="closeModal('resetPasswordModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="resetPasswordForm">
+                    <div class="form-group"><label>Current Password</label><input type="password" id="currentPassword"
+                            class="form-input" required placeholder="Enter current password"></div>
+                    <div class="form-group"><label>New Password</label><input type="password" id="newPassword"
+                            class="form-input" required placeholder="Enter new password"><small
+                            style="color:var(--text-muted);font-size:11px">Must be at least 8 characters</small></div>
+                    <div class="form-group"><label>Confirm New Password</label><input type="password"
+                            id="confirmNewPassword" class="form-input" required placeholder="Confirm new password">
+                    </div>
+                    <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:20px">
+                        <button type="button" class="btn btn-secondary"
+                            onclick="closeModal('resetPasswordModal')">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Update Password</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Account Modal -->
+    <div class="modal-overlay" id="deleteAccountModal">
+        <div class="modal-panel" style="max-width:480px">
+            <div class="modal-header">
+                <h2>⚠️ Delete Account</h2><button class="modal-close"
+                    onclick="closeModal('deleteAccountModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div style="text-align:center;margin-bottom:20px"><span style="font-size:48px">🚨</span>
+                    <h3 style="margin-top:12px">Are you sure?</h3>
+                    <p style="color:var(--text-secondary);font-size:13px;margin-top:8px">This action cannot be undone.
+                        All your data will be permanently deleted.</p>
+                </div>
+                <div
+                    style="background:rgba(239,83,80,.08);border:1px solid rgba(239,83,80,.2);border-radius:var(--radius-sm);padding:16px;margin-bottom:16px">
+                    <h4 style="font-size:13px;margin-bottom:8px;color:var(--danger)">What will be deleted:</h4>
+                    <ul class="info-list">
+                        <li>Your profile information</li>
+                        <li>All order history</li>
+                        <li>Saved items and preferences</li>
+                        <li>Farm management data</li>
+                    </ul>
+                </div>
+                <div class="form-group"><label style="display:flex;align-items:center;gap:8px;font-size:13px"><input
+                            type="checkbox" id="deleteConfirmCheckbox"> I understand this action cannot be
+                        undone</label></div>
+                <div class="form-group"><label>Enter password to confirm:</label><input type="password"
+                        id="deletePassword" class="form-input" placeholder="Your password"></div>
+                <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:20px">
+                    <button class="btn btn-secondary" onclick="closeModal('deleteAccountModal')">Cancel</button>
+                    <button class="btn btn-danger" onclick="deleteAccount()">Delete Account</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Device Modal -->
+    <div class="modal-overlay" id="addDeviceModal">
+        <div class="modal-panel" style="max-width:480px">
+            <div class="modal-header">
+                <h2>➕ Add Device</h2><button class="modal-close" onclick="closeModal('addDeviceModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="addDeviceForm">
+                    <div class="form-group"><label>Device Name</label><input type="text" id="deviceName"
+                            class="form-input" required placeholder="e.g., Field Sensor 1"></div>
+                    <div class="form-group"><label>Device ID</label><input type="text" id="deviceId" class="form-input"
+                            required placeholder="e.g., ESP32-XXXX"></div>
+                    <div class="form-group"><label>Field/Location</label><input type="text" id="deviceField"
+                            class="form-input" placeholder="e.g., North Field"></div>
+                    <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:20px">
+                        <button type="button" class="btn btn-secondary"
+                            onclick="closeModal('addDeviceModal')">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Add Device</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- Reel Player Modal -->
+    <div class="reel-modal-bg" id="reelPlayerModal">
+        <button class="reel-modal-close" onclick="closeReelPlayer()">×</button>
+        <div class="reel-modal-frame"><iframe id="reelPlayerFrame" src="" allowfullscreen allow="autoplay"></iframe>
+        </div>
+    </div>
+
+    <!-- Connect: Farmers Modal -->
+    <div class="modal-overlay" id="farmersModal">
+        <div class="modal-panel">
+            <div class="modal-header">
+                <h2>👨‍🌾 Farmers Network</h2><button class="modal-close"
+                    onclick="closeModal('farmersModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="card-grid" id="farmersList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Supply Chain Detail Modal -->
+    <div class="modal-overlay" id="chainDetailModal">
+        <div class="modal-panel" style="max-width:600px;">
+            <div class="modal-header">
+                <h2 id="chainModalTitle">Supply Chain Step</h2>
+                <button class="modal-close" onclick="closeModal('chainDetailModal')">×</button>
+            </div>
+            <div class="modal-body" id="chainModalBody">
+                <!-- Content injected dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Connect: Suppliers Modal -->
+    <div class="modal-overlay" id="suppliersModal">
+        <div class="modal-panel">
+            <div class="modal-header">
+                <h2>🏢 Suppliers Hub</h2><button class="modal-close" onclick="closeModal('suppliersModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="card-grid" id="suppliersList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Connect: Market Modal -->
+    <div class="modal-overlay" id="marketModal">
+        <div class="modal-panel">
+            <div class="modal-header">
+                <h2>📈 Market Connect</h2><button class="modal-close" onclick="closeModal('marketModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <h3 style="margin-bottom:16px">Live Market Prices</h3>
+                <div style="overflow-x:auto;margin-bottom:24px">
+                    <table style="width:100%;border-collapse:collapse;color:var(--text-secondary)">
+                        <thead>
+                            <tr style="border-bottom:1px solid var(--border-color);text-align:left">
+                                <th style="padding:12px">Crop</th>
+                                <th style="padding:12px">Price</th>
+                                <th style="padding:12px">Trend</th>
+                            </tr>
+                        </thead>
+                        <tbody id="marketPricesBody"></tbody>
+                    </table>
+                </div>
+                <h3 style="margin-bottom:16px">Active Buyers</h3>
+                <div class="card-grid" id="buyersList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Connect: Experts Modal -->
+    <div class="modal-overlay" id="expertsModal">
+        <div class="modal-panel">
+            <div class="modal-header">
+                <h2>🎓 Expert Panel</h2><button class="modal-close" onclick="closeModal('expertsModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="card-grid" id="expertsList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Connect: Training Modal -->
+    <div class="modal-overlay" id="trainingModal">
+        <div class="modal-panel">
+            <div class="modal-header">
+                <h2>📚 Training Hub</h2><button class="modal-close" onclick="closeModal('trainingModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="card-grid" id="coursesList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Connect: Forum Modal -->
+    <div class="modal-overlay" id="forumModal">
+        <div class="modal-panel">
+            <div class="modal-header">
+                <h2>💬 Community Forum</h2><button class="modal-close" onclick="closeModal('forumModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom:24px">
+                    <button class="btn btn-primary btn-block"
+                        onclick="showNotification('New discussion feature coming soon!')">➕ Start New
+                        Discussion</button>
+                </div>
+                <div class="card-grid" id="forumList" style="display:flex;flex-direction:column;gap:12px"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Device Registration Wizard Modal -->
+    <div class="wizard-overlay" id="wizardOverlay" onclick="closeRegistrationWizard()"></div>
+    <div class="wizard-modal" id="wizardModal">
+        <div class="wizard-header">
+            <h2>📡 Register New Device</h2>
+            <button class="wizard-close" onclick="closeRegistrationWizard()">×</button>
+        </div>
+        <div class="wizard-steps">
+            <div class="wizard-step active" data-step="1">
+                <div class="step-circle">1</div>
+                <span>Discover</span>
+            </div>
+            <div class="wizard-step-line"></div>
+            <div class="wizard-step" data-step="2">
+                <div class="step-circle">2</div>
+                <span>Configure</span>
+            </div>
+            <div class="wizard-step-line"></div>
+            <div class="wizard-step" data-step="3">
+                <div class="step-circle">3</div>
+                <span>Register</span>
+            </div>
+        </div>
+        <!-- Step 1: Discover -->
+        <div class="wizard-content" id="wizardStep1">
+            <h3>🔍 Discover Your Device</h3>
+            <p>Scan for nearby SoilProbe devices via Bluetooth, or enter the device ID manually.</p>
+            <div class="discover-options">
+                <div id="bleScanBtn" class="discover-btn" onclick="startSoilProbeBLEScan()">
+                    <div class="discover-icon">🔵</div>
+                    <span>Scan via Bluetooth</span>
+                    <small>Recommended for new devices</small>
+                </div>
+                <div class="discover-divider"><span>or</span></div>
+                <div class="manual-entry">
+                    <label for="manualDeviceId">Enter Device ID</label>
+                    <input type="text" id="manualDeviceId" placeholder="e.g. soilprobe-abc123"
+                        oninput="onManualIdInput()" />
+                    <small>Find the ID on your device label or packaging</small>
+                </div>
+            </div>
+            <div class="ble-results" id="bleResults" style="display:none;">
+                <h4>📡 Found Devices</h4>
+                <div class="ble-device-list" id="bleDeviceList"></div>
+            </div>
+            <div class="wizard-actions">
+                <button class="wizard-btn secondary" onclick="closeRegistrationWizard()">Cancel</button>
+                <button class="wizard-btn primary" id="step1Next" onclick="goToStep(2)" disabled>Next ➜</button>
+            </div>
+        </div>
+        <!-- Step 2: Configure Connectivity -->
+        <div class="wizard-content" id="wizardStep2" style="display:none;">
+            <h3>📶 Configure Connectivity</h3>
+            <p>Choose how your device connects to the internet.</p>
+            <div class="connectivity-tabs">
+                <button class="conn-tab active" onclick="selectConnectivity('wifi')">📡 WiFi</button>
+                <button class="conn-tab" onclick="selectConnectivity('sim')">📶 SIM Card</button>
+            </div>
+            <div class="conn-config" id="wifiConfig">
+                <div class="config-field">
+                    <label for="wifiSsid">WiFi Network (SSID)</label>
+                    <input type="text" id="wifiSsid" placeholder="Enter your WiFi network name" />
+                </div>
+                <div class="config-field">
+                    <label for="wifiPassword">WiFi Password</label>
+                    <input type="password" id="wifiPassword" placeholder="Enter WiFi password" />
+                </div>
+                <div class="config-note">
+                    <span>ℹ️</span> Credentials will be sent to the device over Bluetooth. Ensure device is nearby.
+                </div>
+            </div>
+            <div class="conn-config" id="simConfig" style="display:none;">
+                <div class="config-field">
+                    <label for="simApn">APN (Access Point Name)</label>
+                    <input type="text" id="simApn" placeholder="e.g. internet" value="internet" />
+                </div>
+                <div class="config-note">
+                    <span>ℹ️</span> Ensure a SIM card with data plan is inserted in the device.
+                </div>
+            </div>
+            <div class="wizard-actions">
+                <button class="wizard-btn secondary" onclick="goToStep(1)">⬅ Back</button>
+                <button class="wizard-btn primary" onclick="goToStep(3)">Next ➜</button>
+            </div>
+        </div>
+        <!-- Step 3: Register -->
+        <div class="wizard-content" id="wizardStep3" style="display:none;">
+            <h3>📝 Name & Register</h3>
+            <p>Give your device a name and assign it to a field.</p>
+            <div class="register-form">
+                <div class="config-field">
+                    <label for="deviceNameWizard">Device Name</label>
+                    <input type="text" id="deviceNameWizard" placeholder="e.g. Field 1 - North Sensor" />
+                </div>
+                <div class="config-field">
+                    <label for="fieldNameInput">Field / Location</label>
+                    <input type="text" id="fieldNameInput" placeholder="e.g. Field 1" />
+                </div>
+                <div class="config-field">
+                    <label for="cropType">Crop Type</label>
+                    <select id="cropType">
+                        <option value="">Select Crop</option>
+                        <option value="wheat">🌾 Wheat</option>
+                        <option value="rice">🍚 Rice</option>
+                        <option value="cotton">🧶 Cotton</option>
+                        <option value="corn">🌽 Corn / Maize</option>
+                        <option value="sugarcane">🎋 Sugarcane</option>
+                        <option value="soybean">🌱 Soybean</option>
+                        <option value="vegetables">🥦 Vegetables</option>
+                        <option value="fruits">🍎 Fruits</option>
+                        <option value="other">🌿 Other</option>
+                    </select>
+                </div>
+                <div class="registration-summary">
+                    <h4>📋 Registration Summary</h4>
+                    <div class="summary-row"><span>Device ID:</span> <strong id="summaryDeviceId">--</strong></div>
+                    <div class="summary-row"><span>Connectivity:</span> <strong id="summaryConn">WiFi</strong></div>
+                </div>
+            </div>
+            <div class="wizard-actions">
+                <button class="wizard-btn secondary" onclick="goToStep(2)">⬅ Back</button>
+                <button class="wizard-btn primary success" id="registerBtn" onclick="registerDevice()">
+                    ✅ Register Device
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- Notification container -->
+    <div id="notificationContainer"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
+    <script src="hardini-auth.js?v=2"></script>
+    <script src="app.js?v=4"></script>
+</body>
+
+</html>

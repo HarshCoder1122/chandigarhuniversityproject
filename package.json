@@ -1,0 +1,31 @@
+{
+  "name": "hardini-app",
+  "version": "1.0.0",
+  "description": "Hardini - Technology Meets Experiences - Full Stack Farming Platform",
+  "main": "index.html",
+  "scripts": {
+    "dev": "concurrently \"npm run backend\" \"npm run frontend\"",
+    "backend": "cd backend && npm start",
+    "frontend": "python -m http.server 8080",
+    "start": "npm run dev",
+    "install:all": "npm install && cd backend && npm install",
+    "backend:dev": "cd backend && npm run dev",
+    "build": "echo 'Build completed successfully'",
+    "vercel-deploy": "vercel --prod"
+  },
+  "dependencies": {
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "keywords": [
+    "farming",
+    "agriculture",
+    "youtube",
+    "reels",
+    "platform"
+  ],
+  "author": "Hardini Technologies",
+  "license": "MIT"
+}

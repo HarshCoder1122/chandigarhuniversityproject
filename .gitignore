@@ -1,0 +1,8 @@
+.vercel
+.env
+node_modules/
+.env*.local
+backend/serviceAccountKey.json
+build_css.py
+build_app.py
+build_js.py

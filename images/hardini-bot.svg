@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Circular background -->
+    <circle cx="24" cy="24" r="24" fill="#001A12"/>
+    
+    <!-- Leaf shape -->
+    <path d="M24 8C24 8 32 16 32 24C32 32 24 40 16 32C8 24 16 16 24 8Z" 
+          fill="#4CAF50" stroke="#4CAF50" stroke-width="2"/>
+    
+    <!-- Circuit lines -->
+    <path d="M24 8L32 16M24 8L16 16M24 40L32 32M24 40L16 32" 
+          stroke="#45A049" stroke-width="2"/>
+    
+    <!-- Center dot -->
+    <circle cx="24" cy="24" r="4" fill="#FFFFFF"/>
+</svg> 

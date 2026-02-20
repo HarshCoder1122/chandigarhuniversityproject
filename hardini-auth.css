@@ -1,0 +1,401 @@
+/* ============================================
+   HARDINI AUTH — Shared User Menu & Help Panel
+   ============================================ */
+
+/* ── User Menu in Nav ── */
+.hardini-user-menu {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    padding: 6px 14px;
+    border-radius: 50px;
+    background: rgba(76, 175, 80, 0.1);
+    border: 1px solid rgba(76, 175, 80, 0.25);
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.hardini-user-menu:hover {
+    background: rgba(76, 175, 80, 0.2);
+    border-color: rgba(76, 175, 80, 0.5);
+    transform: translateY(-1px);
+}
+
+.hardini-user-menu .user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: #fff;
+    font-weight: 600;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.hardini-user-menu .user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.hardini-user-menu .user-name {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #e0e0e0;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Hide login button when logged in */
+.auth-toggle-btn.hidden-auth {
+    display: none !important;
+}
+
+/* ── Help/Support Side Panel ── */
+.hardini-help-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 10, 7, 0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 9998;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.35s ease;
+}
+
+.hardini-help-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.hardini-help-panel {
+    position: fixed;
+    top: 0;
+    right: -420px;
+    width: 400px;
+    max-width: 90vw;
+    height: 100%;
+    background: linear-gradient(180deg, #001a12 0%, #00120d 100%);
+    border-left: 1px solid rgba(76, 175, 80, 0.15);
+    z-index: 9999;
+    overflow-y: auto;
+    transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: -10px 0 40px rgba(0, 0, 0, 0.5);
+}
+
+.hardini-help-panel.active {
+    right: 0;
+}
+
+.hardini-help-panel::-webkit-scrollbar {
+    width: 4px;
+}
+
+.hardini-help-panel::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.hardini-help-panel::-webkit-scrollbar-thumb {
+    background: rgba(76, 175, 80, 0.3);
+    border-radius: 4px;
+}
+
+/* Panel Header */
+.help-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(76, 175, 80, 0.1);
+    position: sticky;
+    top: 0;
+    background: rgba(0, 26, 18, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    z-index: 2;
+}
+
+.help-panel-header .panel-brand {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #4CAF50;
+    letter-spacing: 1px;
+}
+
+.help-panel-header .close-panel {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #aaa;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.help-panel-header .close-panel:hover {
+    background: rgba(255, 82, 82, 0.15);
+    border-color: rgba(255, 82, 82, 0.3);
+    color: #ff5252;
+}
+
+/* Profile Card */
+.help-profile-card {
+    margin: 20px 24px;
+    padding: 20px;
+    background: rgba(76, 175, 80, 0.06);
+    border: 1px solid rgba(76, 175, 80, 0.12);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.help-profile-card .profile-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: #fff;
+    font-weight: 700;
+    flex-shrink: 0;
+    overflow: hidden;
+    border: 2px solid rgba(76, 175, 80, 0.3);
+}
+
+.help-profile-card .profile-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.help-profile-card .profile-details h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 3px;
+}
+
+.help-profile-card .profile-details p {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin: 0;
+}
+
+.help-profile-card .profile-details .member-since {
+    font-size: 0.7rem;
+    color: rgba(76, 175, 80, 0.6);
+    margin-top: 4px;
+}
+
+/* Section Titles */
+.help-section-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: rgba(255, 255, 255, 0.35);
+    padding: 16px 24px 8px;
+}
+
+/* Navigation Links */
+.help-nav-links {
+    padding: 0 16px;
+    list-style: none;
+    margin: 0;
+}
+
+.help-nav-links li {
+    margin: 2px 0;
+}
+
+.help-nav-links a,
+.help-nav-links button {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    font-size: 0.88rem;
+    font-weight: 400;
+    transition: all 0.2s ease;
+    width: 100%;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+}
+
+.help-nav-links a:hover,
+.help-nav-links button:hover {
+    background: rgba(76, 175, 80, 0.1);
+    color: #4CAF50;
+}
+
+.help-nav-links .link-icon {
+    font-size: 1.15rem;
+    width: 24px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.help-nav-links .link-badge {
+    margin-left: auto;
+    background: rgba(76, 175, 80, 0.2);
+    color: #4CAF50;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+/* Divider */
+.help-divider {
+    height: 1px;
+    background: rgba(76, 175, 80, 0.08);
+    margin: 8px 24px;
+}
+
+/* FAQ Accordion */
+.help-faq-list {
+    padding: 0 16px;
+    list-style: none;
+    margin: 0;
+}
+
+.help-faq-item {
+    margin: 4px 0;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid transparent;
+    transition: border-color 0.2s ease;
+}
+
+.help-faq-item.active {
+    border-color: rgba(76, 175, 80, 0.15);
+    background: rgba(76, 175, 80, 0.04);
+}
+
+.help-faq-question {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+}
+
+.help-faq-question:hover {
+    color: #4CAF50;
+}
+
+.help-faq-question .faq-arrow {
+    transition: transform 0.3s ease;
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.help-faq-item.active .faq-arrow {
+    transform: rotate(90deg);
+    color: #4CAF50;
+}
+
+.help-faq-answer {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.8rem;
+    line-height: 1.6;
+    padding: 0 16px;
+}
+
+.help-faq-item.active .help-faq-answer {
+    max-height: 200px;
+    padding: 0 16px 14px;
+}
+
+/* Logout Button */
+.help-logout-section {
+    padding: 16px 16px 24px;
+}
+
+.help-logout-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 13px;
+    border-radius: 12px;
+    background: rgba(255, 82, 82, 0.08);
+    border: 1px solid rgba(255, 82, 82, 0.15);
+    color: #ff5252;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.help-logout-btn:hover {
+    background: rgba(255, 82, 82, 0.15);
+    border-color: rgba(255, 82, 82, 0.3);
+    transform: translateY(-1px);
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+    .hardini-user-menu .user-name {
+        display: none;
+    }
+
+    .hardini-help-panel {
+        width: 100%;
+        max-width: 100vw;
+        right: -100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .hardini-user-menu {
+        padding: 4px 10px;
+    }
+
+    .hardini-user-menu .user-avatar {
+        width: 28px;
+        height: 28px;
+        font-size: 14px;
+    }
+}
