@@ -657,12 +657,12 @@ app.post('/api/chat', async (req, res) => {
         // Use High Quality Model
         let model = 'llama-3.3-70b-versatile';
         if (image) {
-            model = 'llama-3.2-90b-vision-preview'; // High quality vision model
-            const userContent = [
-                { type: 'text', text: message || 'Analyze this agricultural image.' },
-                { type: 'image_url', image_url: { url: image.startsWith('data:') ? image : `data:image/jpeg;base64,${image}` } }
-            ];
-            messages.push({ role: 'user', content: userContent });
+            // Groq has temporarily decommissioned 'llama-3.2-90b-vision-preview' and 'llama-3.2-11b-vision-preview'.
+            // To prevent a 500 Internal Server Error crash, we gracefully degrade to text-only mode and 
+            // instruct the AI to apologize for the vision outage.
+            const textToSend = (message || "I uploaded an image.") + "\n\n[System Note: The user attached an image, but your Vision Analysis module is currently offline due to upstream provider maintenance. Please politely inform them that you cannot see the image right now, but you are happy to help with any text descriptions they can provide.]";
+
+            messages.push({ role: 'user', content: textToSend });
         } else {
             messages.push({ role: 'user', content: message });
         }

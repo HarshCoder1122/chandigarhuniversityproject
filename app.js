@@ -1419,28 +1419,15 @@ function analyzeSoilData() {
 Based on this, what are the immediate irrigation and fertilizer recommendations? 
 Also, considering general NPK needs for standard crops, suggest any adjustments.`;
 
-    // Open Chatbot
-    const panel = document.getElementById('chatbotPanel');
-    if (!panel.classList.contains('open')) toggleChatbot();
+    // Navigate to Chat interface
+    showSection('section-chat');
 
-    // Send Message
-    setTimeout(() => sendQuickChat(prompt), 500); // Small delay to let panel open
-}
-
-// Inject Analyze Button into Chart Container (One-time setup or dynamic)
-// Modifying loadSensorData to ensure button exists
-const _origLoadSensorData = loadSensorData;
-loadSensorData = async function (deviceId) {
-    await _origLoadSensorData(deviceId);
-    const container = document.getElementById('chartContainer');
-    if (!document.getElementById('aiAnalyzeBtn')) {
-        const btn = document.createElement('button');
-        btn.id = 'aiAnalyzeBtn';
-        btn.className = 'btn btn-primary btn-sm';
-        btn.style.marginTop = '15px';
-        btn.innerHTML = '🤖 Analyze Data & Recommend';
-        btn.onclick = analyzeSoilData;
-        container.appendChild(btn);
+    // Set chat input and automatically send
+    const chatInput = document.getElementById('chatInput');
+    if (chatInput) {
+        chatInput.value = prompt;
+        // Small delay to ensure section renders
+        setTimeout(() => sendChatMessage(), 100);
     }
 }
 
@@ -2287,154 +2274,252 @@ window.addEventListener('offline', () => {
     showNotification('You are now offline. App will use cached data.', 'error');
 });
 
-// --- INDUSLABS AI CALL INTEGRATION ---
-async function triggerIndusCall() {
-    const inputEl = document.getElementById('indusMobileNumber');
+// --- GEMINI MULTIMODAL LIVE API INTEGRATION ---
+let geminiWs = null;
+let audioContext = null;
+let mediaStream = null;
+let scriptProcessor = null;
+let isGeminiConnected = false;
+let playbackTime = 0;
+
+const GEMINI_API_KEY = "REMOVED_SECRET";
+const GEMINI_HOST = "generativelanguage.googleapis.com";
+const WS_URL = `wss://${GEMINI_HOST}/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${GEMINI_API_KEY}`;
+
+async function triggerGeminiCall() {
     const btnEl = document.getElementById('indusCallBtn');
 
-    // If already connected, disconnect
-    if (window.currentIndusRoom) {
-        window.currentIndusRoom.disconnect();
-        window.currentIndusRoom = null;
+    if (isGeminiConnected && geminiWs) {
+        // Disconnect
+        geminiWs.close();
+        stopAudioCapture();
+        isGeminiConnected = false;
         btnEl.innerText = 'Call Now';
         btnEl.style.background = 'linear-gradient(135deg, var(--accent-dark), var(--accent))';
         return;
     }
 
-    if (!inputEl || !btnEl) return;
-
-    let number = inputEl.value.trim();
-
-    if (!number || number.length < 10) {
-        showNotification('Please enter a valid mobile number to identify yourself', 'error');
-        return;
-    }
-
-    if (/^\d{10}$/.test(number)) {
-        number = '+91' + number;
-    }
+    if (!btnEl) return;
 
     const originalText = btnEl.innerText;
     btnEl.innerText = 'Connecting...';
     btnEl.disabled = true;
 
     try {
-        const apiKey = "REMOVED_SECRET";
+        geminiWs = new WebSocket(WS_URL);
 
-        // 1. Fetch available agents to get the Agent ID
-        console.log("Fetching IndusLabs Agents...");
-        const agentsReq = await fetch("https://api.induslabs.io/api/developer/agents", {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'accept': 'application/json' },
-            body: JSON.stringify({ api_key: apiKey }),
-        });
+        geminiWs.onopen = async () => {
+            console.log("Connected to Gemini Live Multimodal API!");
+            isGeminiConnected = true;
 
-        if (!agentsReq.ok) {
-            const errBody = await agentsReq.text();
-            throw new Error(`Agent Fetch Failed (${agentsReq.status}): ${errBody}`);
-        }
-
-        const agentsData = await agentsReq.json();
-        const allAgents = (agentsData.data && agentsData.data.agents) ? agentsData.data.agents : [];
-        console.log("Found IndusLabs Agents:", allAgents);
-
-        if (allAgents.length === 0) {
-            throw new Error("No agents found in your account.");
-        }
-
-        // 1. Search for public Agent IDs (LiveKit enabled) starting with 'AGT_'
-        // 2. Fallback to agents with 'web' in the name
-        // 3. Last fallback to the first available agent
-        const webAgent = allAgents.find(a => a.id && a.id.startsWith('AGT_')) ||
-            allAgents.find(a => a.name && a.name.toLowerCase().includes('web')) ||
-            allAgents[0];
-
-        if (!webAgent || !webAgent.id) {
-            throw new Error("Could not find a valid agent ID in your account.");
-        }
-
-        const agentId = webAgent.id;
-        const agentName = webAgent.name || "Unnamed Agent";
-
-        // Critical Warning: If ID doesn't start with AGT_, the /livekit endpoint will likely fail with 404
-        if (!agentId.startsWith('AGT_')) {
-            console.warn(`Warning: Selected agent (${agentName}) has internal ID ${agentId}. Web calling might fail. Please ensure you have a 'Web Agent' in your IndusLabs dashboard.`);
-        }
-
-        console.log(`Connecting via Agent: ${agentName} (ID: ${agentId})`);
-
-        // 2. Obtain LiveKit credentials using the fetched Agent ID
-        console.log("Requesting LiveKit session...");
-        const lkResp = await fetch("https://api.induslabs.io/api/developer/livekit", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "accept": "application/json" },
-            body: JSON.stringify({
-                api_key: apiKey,
-                agent_id: agentId,
-                customer_number: number || "+919876543210"
-            }),
-        });
-
-        if (!lkResp.ok) {
-            const errBody = await lkResp.text();
-            let errorMessage = "Failed to start Voice Agent session.";
-
-            if (lkResp.status === 404) {
-                errorMessage = "Web Voice Agent not found. Please create a 'Web Agent' in your IndusLabs dashboard and try again.";
-                console.error("404 Error: The provided Agent ID is not compatible with WebRTC calling.");
-            }
-
-            throw new Error(`${errorMessage} (${lkResp.status})`);
-        }
-
-        const resJson = await lkResp.json();
-        const responseData = resJson.data || resJson;
-        const { token, livekit_host_url } = responseData;
-        console.log("Got LiveKit Token successfully!");
-
-        // 3. Connect to LiveKit room
-        let host = livekit_host_url;
-        if (host.startsWith('https://')) host = host.replace('https://', 'wss://');
-        else if (host.startsWith('http://')) host = host.replace('http://', 'ws://');
-        else if (!host.startsWith('ws')) host = 'wss://' + host;
-
-        const room = new LivekitClient.Room();
-
-        room.on(LivekitClient.RoomEvent.Connected, async () => {
-            console.log('Connected to IndusLabs LiveKit room!');
-            // Publish local microphone
-            await room.localParticipant.setMicrophoneEnabled(true);
             showNotification('Connected to AI! Speak now. 🎙️', 'success');
 
             btnEl.innerText = 'End Call 🔴';
             btnEl.style.background = 'var(--danger)';
             btnEl.disabled = false;
-        });
 
-        room.on(LivekitClient.RoomEvent.Disconnected, () => {
-            console.log('Disconnected from IndusLabs');
+            // Send Setup message
+            const setupMsg = {
+                setup: {
+                    model: "models/gemini-2.5-flash-native-audio-preview-12-2025",
+                    generationConfig: {
+                        responseModalities: ["AUDIO"],
+                        speechConfig: {
+                            voiceConfig: {
+                                prebuiltVoiceConfig: {
+                                    voiceName: "Aoede" // Natural English voice
+                                }
+                            }
+                        }
+                    },
+                    systemInstruction: {
+                        parts: [{
+                            text: `You are Hardini AI, an expert agricultural assistant designed for Indian farmers. 
+                            Strict Rules:
+                            1. You must ONLY answer questions related to agriculture, farming, crops, weather, soil, and market prices. If a user asks anything else, politely decline.
+                            2. You must speak primarily in conversational Hindi/Hinglish (e.g., 'Hello, m aapki kesi madad kr skti hu?').
+                            3. Keep responses extremely short, fast, and concise (1-2 sentences max) as this is a real-time voice call.`
+                        }]
+                    }
+                }
+            };
+            geminiWs.send(JSON.stringify(setupMsg));
+
+            // Force immediate welcome greeting to mask latency
+            const initialGreeting = {
+                clientContent: {
+                    turns: [{
+                        role: "user",
+                        parts: [{ text: "Start the conversation by saying exactly this and nothing else: 'Hello I am Hardini AI, m aapki kesi madad kr skti hu'" }]
+                    }],
+                    turnComplete: true
+                }
+            };
+
+            // Give the setup message 100ms to process before firing the prompt
+            setTimeout(() => {
+                if (geminiWs.readyState === WebSocket.OPEN) {
+                    geminiWs.send(JSON.stringify(initialGreeting));
+                }
+            }, 100);
+
+            // Setup audio playback time reference
+            playbackTime = 0;
+
+            // Start Audio capture after setup
+            await startAudioCapture();
+        };
+
+        geminiWs.onmessage = async (event) => {
+            let msg;
+            if (event.data instanceof Blob) {
+                const text = await event.data.text();
+                msg = JSON.parse(text);
+            } else {
+                msg = JSON.parse(event.data);
+            }
+
+            if (msg.serverContent && msg.serverContent.modelTurn) {
+                const parts = msg.serverContent.modelTurn.parts;
+                for (let part of parts) {
+                    if (part.inlineData && part.inlineData.data) {
+                        const base64Audio = part.inlineData.data;
+                        playPcmAudio(base64Audio);
+                    }
+                }
+            }
+        };
+
+        geminiWs.onclose = () => {
+            console.log("Disconnected from Gemini");
             showNotification('Call ended.', 'info');
+            stopAudioCapture();
+            isGeminiConnected = false;
+            geminiWs = null;
             btnEl.innerText = 'Call Now';
             btnEl.style.background = 'linear-gradient(135deg, var(--accent-dark), var(--accent))';
             btnEl.disabled = false;
-            window.currentIndusRoom = null;
-        });
+        };
 
-        // Handle incoming audio tracks from the AI agent
-        room.on(LivekitClient.RoomEvent.TrackSubscribed, (track, publication, participant) => {
-            if (track.kind === LivekitClient.Track.Kind.Audio) {
-                const element = track.attach();
-                document.body.appendChild(element);
-            }
-        });
-
-        await room.connect(host, token);
-        window.currentIndusRoom = room;
+        geminiWs.onerror = (err) => {
+            console.error("Gemini WebSocket Error:", err);
+            showNotification('Connection error.', 'error');
+            btnEl.innerText = originalText;
+            btnEl.disabled = false;
+        };
 
     } catch (e) {
-        console.error("IndusLabs Call Error:", e);
+        console.error("Gemini Call Error:", e);
         showNotification('Could not connect call. Please try again.', 'error');
         btnEl.innerText = originalText;
         btnEl.disabled = false;
     }
+}
+
+async function startAudioCapture() {
+    try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({ audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true } });
+
+        // Setup AudioContext at 16000 Hz
+        audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+        const source = audioContext.createMediaStreamSource(mediaStream);
+
+        // 4096 buffer size is a good balance between latency and performance
+        scriptProcessor = audioContext.createScriptProcessor(4096, 1, 1);
+
+        scriptProcessor.onaudioprocess = (e) => {
+            if (!isGeminiConnected || !geminiWs || geminiWs.readyState !== WebSocket.OPEN) return;
+
+            const inputData = e.inputBuffer.getChannelData(0);
+
+            // Convert Float32 to Int16
+            let pcm16 = new Int16Array(inputData.length);
+            for (let i = 0; i < inputData.length; i++) {
+                let s = Math.max(-1, Math.min(1, inputData[i]));
+                pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+            }
+
+            // Convert Int16Array to Base64
+            const buffer = new ArrayBuffer(pcm16.length * 2);
+            const view = new DataView(buffer);
+            for (let i = 0; i < pcm16.length; i++) {
+                view.setInt16(i * 2, pcm16[i], true); // true for little-endian
+            }
+
+            let binary = '';
+            const bytes = new Uint8Array(buffer);
+            const len = bytes.byteLength;
+            for (let i = 0; i < len; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            const base64Data = btoa(binary);
+
+            const msg = {
+                realtimeInput: {
+                    mediaChunks: [{
+                        mimeType: "audio/pcm;rate=16000",
+                        data: base64Data
+                    }]
+                }
+            };
+            geminiWs.send(JSON.stringify(msg));
+        };
+
+        source.connect(scriptProcessor);
+        scriptProcessor.connect(audioContext.destination);
+    } catch (err) {
+        console.error("Error capturing audio:", err);
+        showNotification("Microphone access denied or unavailable.", "error");
+    }
+}
+
+function stopAudioCapture() {
+    if (scriptProcessor) {
+        scriptProcessor.disconnect();
+        scriptProcessor = null;
+    }
+    if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+        mediaStream = null;
+    }
+    if (audioContext) {
+        audioContext.close();
+        audioContext = null;
+    }
+}
+
+function playPcmAudio(base64Data) {
+    if (!audioContext) return;
+
+    // Decode base64 to binary string
+    const binaryStr = atob(base64Data);
+    const len = binaryStr.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+        bytes[i] = binaryStr.charCodeAt(i);
+    }
+
+    // Convert Int16 little-endian to Float32
+    const int16Array = new Int16Array(bytes.buffer);
+    const float32Array = new Float32Array(int16Array.length);
+    for (let i = 0; i < int16Array.length; i++) {
+        float32Array[i] = int16Array[i] / 32768.0;
+    }
+
+    // Create AudioBuffer (Gemini Multimodal Live API returns 24kHz PCM)
+    const buffer = audioContext.createBuffer(1, float32Array.length, 24000);
+    buffer.getChannelData(0).set(float32Array);
+
+    // Play it
+    const source = audioContext.createBufferSource();
+    source.buffer = buffer;
+    source.connect(audioContext.destination);
+
+    // Ensure smooth playback queuing
+    const now = audioContext.currentTime;
+    if (playbackTime < now) {
+        playbackTime = now;
+    }
+    source.start(playbackTime);
+    playbackTime += buffer.duration;
 }
