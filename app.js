@@ -848,10 +848,14 @@ async function sendChatMessage() {
     if (!msg && !chatImageData) return;
     input.value = '';
 
+    // Cache image data for this request and instantly clear the UI preview
+    const currentImageData = chatImageData;
+    removeChatImage();
+
     // Add user message
     const msgs = document.getElementById('chatMessages');
     let userHtml = `<div class="chat-msg user"><div class="msg-avatar">👤</div><div class="msg-bubble">`;
-    if (chatImageData) userHtml += `<img src="${chatImageData}" style="max-width:150px;border-radius:8px;margin-bottom:8px;display:block">`;
+    if (currentImageData) userHtml += `<img src="${currentImageData}" style="max-width:150px;border-radius:8px;margin-bottom:8px;display:block">`;
     userHtml += `${msg}</div></div>`;
     msgs.innerHTML += userHtml;
 
@@ -880,7 +884,7 @@ async function sendChatMessage() {
         }
 
         const body = { message: msg, language: lang, location: locationData };
-        if (chatImageData) body.image = chatImageData;
+        if (currentImageData) body.image = currentImageData;
 
         const res = await fetch(`${API_BASE}/api/chat`, {
             method: 'POST',
@@ -904,7 +908,6 @@ async function sendChatMessage() {
         msgs.innerHTML += `<div class="chat-msg bot"><div class="msg-avatar">🌱</div><div class="msg-bubble">Sorry, I'm having trouble connecting. Please try again.</div></div>`;
         setChatStatus('online');
     }
-    removeChatImage();
 }
 
 function formatChatReply(text) {

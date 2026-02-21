@@ -599,7 +599,6 @@ async function fetchUserSoilData(uid) {
 
 app.post('/api/chat', async (req, res) => {
     try {
-        if (!GROQ_API_KEY) return res.status(503).json({ success: false, error: 'AI service not configured' });
 
         const { message, language, image, history, location } = req.body;
         // Personalization using Auth
@@ -645,36 +644,79 @@ app.post('/api/chat', async (req, res) => {
             .map(r => r.value)
             .join('\n');
 
-        const messages = [
-            { role: 'system', content: HARDINI_SYSTEM_PROMPT(language) + `\nContext: ${userContext}\nReal-time Data:\n${contextData}` }
-        ];
+        const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+        if (!GEMINI_API_KEY) return res.status(503).json({ success: false, error: 'Gemini AI service not configured' });
 
+        // Gemini REST API URL
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+        // Construct Gemini 'contents' array (history + current)
+        const geminiContents = [];
+
+        // Map existing history (if any) to Gemini role format ('user' and 'model')
         if (history && Array.isArray(history)) {
-            const recentHistory = history.slice(-6); // Reduced history context for speed
-            recentHistory.forEach(msg => messages.push({ role: msg.role === 'user' ? 'user' : 'assistant', content: msg.content }));
+            const recentHistory = history.slice(-6); // Limit context window
+            recentHistory.forEach(msg => {
+                geminiContents.push({
+                    role: msg.role === 'user' ? 'user' : 'model',
+                    parts: [{ text: msg.content }]
+                });
+            });
         }
 
-        // Use High Quality Model
-        let model = 'llama-3.3-70b-versatile';
+        // Build the current turn's parts
+        const currentParts = [];
+        if (message) {
+            currentParts.push({ text: message });
+        }
+
+        // Handle Base64 Image Upload
         if (image) {
-            // Groq has temporarily decommissioned 'llama-3.2-90b-vision-preview' and 'llama-3.2-11b-vision-preview'.
-            // To prevent a 500 Internal Server Error crash, we gracefully degrade to text-only mode and 
-            // instruct the AI to apologize for the vision outage.
-            const textToSend = (message || "I uploaded an image.") + "\n\n[System Note: The user attached an image, but your Vision Analysis module is currently offline due to upstream provider maintenance. Please politely inform them that you cannot see the image right now, but you are happy to help with any text descriptions they can provide.]";
+            // Ensure we extract just the raw base64 data, stripping the data URL prefix if present
+            const base64Data = image.includes('base64,') ? image.split('base64,')[1] : image;
+            // Best guess mime type, Gemini is usually pretty flexible if it's jpeg/png/webp
+            const mimeType = image.includes('data:') ? image.split(';')[0].split(':')[1] : 'image/jpeg';
 
-            messages.push({ role: 'user', content: textToSend });
-        } else {
-            messages.push({ role: 'user', content: message });
+            currentParts.push({
+                inlineData: {
+                    mimeType: mimeType,
+                    data: base64Data
+                }
+            });
         }
 
-        const groqResponse = await axios.post(GROQ_API_URL, {
-            model: model,
-            messages: messages,
-            temperature: 0.7,
-            max_tokens: 1024 // Restore token limit
-        }, { headers: { 'Authorization': `Bearer ${GROQ_API_KEY}` } });
+        // Add the current turn to the conversation
+        if (currentParts.length > 0) {
+            geminiContents.push({
+                role: 'user',
+                parts: currentParts
+            });
+        } else {
+            return res.status(400).json({ success: false, error: 'Message or image required' });
+        }
 
-        const reply = groqResponse.data.choices[0]?.message?.content || 'Error generating response.';
+        // System Instruction combines the persona prompt + RAG context
+        const systemInstructionText = HARDINI_SYSTEM_PROMPT(language) + `\nContext: ${userContext}\nReal-time Data:\n${contextData}`;
+
+        // Prepare the full payload for Gemini
+        const payload = {
+            systemInstruction: {
+                parts: [{ text: systemInstructionText }]
+            },
+            contents: geminiContents,
+            generationConfig: {
+                temperature: 0.7,
+                maxOutputTokens: 1024
+            }
+        };
+
+        // Call Gemini API
+        const geminiResponse = await axios.post(geminiUrl, payload, {
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        // Parse response
+        const reply = geminiResponse.data.candidates?.[0]?.content?.parts?.[0]?.text || 'Error generating response (No text parts).';
 
         // Save chat log to Firebase for history/audit
         if (req.user) {
