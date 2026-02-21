@@ -527,6 +527,49 @@ app.get('/api/mandi', async (req, res) => {
     }
 });
 
+// ============================================
+// INDUSLABS AI VOICE AGENT PROXY ENDPOINTS
+// ============================================
+const INDUSLABS_API_KEY = process.env.INDUSLABS_API_KEY || 'REMOVED_SECRET';
+
+// Proxy: Fetch Available Agents
+app.post('/api/agents', async (req, res) => {
+    try {
+        const response = await axios.post("https://api.induslabs.io/api/developer/agents", {
+            api_key: INDUSLABS_API_KEY
+        }, {
+            headers: { 'Content-Type': 'application/json', 'accept': 'application/json' }
+        });
+        res.json(response.data);
+    } catch (error) {
+        console.error("IndusLabs Agents Proxy Error:", error.message);
+        res.status(error.response?.status || 500).json(error.response?.data || { error: "Failed to fetch agents" });
+    }
+});
+
+// Proxy: Start LiveKit Session
+app.post('/api/livekit', async (req, res) => {
+    try {
+        const { agent_id, customer_number } = req.body;
+
+        if (!agent_id) {
+            return res.status(400).json({ error: "agent_id is required" });
+        }
+
+        const response = await axios.post("https://api.induslabs.io/api/developer/livekit", {
+            api_key: INDUSLABS_API_KEY,
+            agent_id: agent_id,
+            customer_number: customer_number || "WebUser"
+        }, {
+            headers: { 'Content-Type': 'application/json', 'accept': 'application/json' }
+        });
+        res.json(response.data);
+    } catch (error) {
+        console.error("IndusLabs LiveKit Proxy Error:", error.message);
+        res.status(error.response?.status || 500).json(error.response?.data || { error: "Failed to start LiveKit session" });
+    }
+});
+
 // Helper: Fetch Soil Data from Firebase
 async function fetchUserSoilData(uid) {
     try {

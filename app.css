@@ -3610,4 +3610,9 @@ input:checked+.slider::before {
         flex: 0 0 70px;
         padding: 10px 8px
     }
+
+    .chat-page-container {
+        height: calc(100vh - 160px);
+        margin-bottom: 80px;
+    }
 }

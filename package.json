@@ -14,7 +14,8 @@
     "vercel-deploy": "vercel --prod"
   },
   "dependencies": {
-    "axios": "^1.6.0"
+    "axios": "^1.6.0",
+    "livekit-client": "^2.17.2"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

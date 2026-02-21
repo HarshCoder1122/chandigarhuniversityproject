@@ -999,12 +999,41 @@ function clearChat() {
 function handleChatImage(e) {
     const file = e.target.files[0];
     if (!file) return;
+
+    // Show preview box with loading state
+    const preview = document.getElementById('chatImgPreview');
+    const imgEl = document.getElementById('chatPreviewImg');
+    imgEl.src = "";
+    imgEl.style.opacity = '0.5';
+    preview.style.display = 'flex';
+
     const reader = new FileReader();
-    reader.onload = () => {
-        chatImageData = reader.result;
-        const preview = document.getElementById('chatImgPreview');
-        document.getElementById('chatPreviewImg').src = chatImageData;
-        preview.style.display = 'flex';
+    reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 800;
+            const MAX_HEIGHT = 800;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height) {
+                if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+            } else {
+                if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            // Compress to reduce payload size
+            chatImageData = canvas.toDataURL('image/jpeg', 0.7);
+            imgEl.src = chatImageData;
+            imgEl.style.opacity = '1';
+        };
+        img.src = event.target.result;
     };
     reader.readAsDataURL(file);
 }
@@ -2293,28 +2322,75 @@ async function triggerIndusCall() {
         const apiKey = "REMOVED_SECRET";
 
         // 1. Fetch available agents to get the Agent ID
+        console.log("Fetching IndusLabs Agents...");
         const agentsReq = await fetch("https://api.induslabs.io/api/developer/agents", {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'accept': 'application/json' },
             body: JSON.stringify({ api_key: apiKey }),
         });
+
+        if (!agentsReq.ok) {
+            const errBody = await agentsReq.text();
+            throw new Error(`Agent Fetch Failed (${agentsReq.status}): ${errBody}`);
+        }
+
         const agentsData = await agentsReq.json();
-        const agentId = agentsData.data.agents[0].id; // Extracting the first agent ID
+        const allAgents = (agentsData.data && agentsData.data.agents) ? agentsData.data.agents : [];
+        console.log("Found IndusLabs Agents:", allAgents);
+
+        if (allAgents.length === 0) {
+            throw new Error("No agents found in your account.");
+        }
+
+        // 1. Search for public Agent IDs (LiveKit enabled) starting with 'AGT_'
+        // 2. Fallback to agents with 'web' in the name
+        // 3. Last fallback to the first available agent
+        const webAgent = allAgents.find(a => a.id && a.id.startsWith('AGT_')) ||
+            allAgents.find(a => a.name && a.name.toLowerCase().includes('web')) ||
+            allAgents[0];
+
+        if (!webAgent || !webAgent.id) {
+            throw new Error("Could not find a valid agent ID in your account.");
+        }
+
+        const agentId = webAgent.id;
+        const agentName = webAgent.name || "Unnamed Agent";
+
+        // Critical Warning: If ID doesn't start with AGT_, the /livekit endpoint will likely fail with 404
+        if (!agentId.startsWith('AGT_')) {
+            console.warn(`Warning: Selected agent (${agentName}) has internal ID ${agentId}. Web calling might fail. Please ensure you have a 'Web Agent' in your IndusLabs dashboard.`);
+        }
+
+        console.log(`Connecting via Agent: ${agentName} (ID: ${agentId})`);
 
         // 2. Obtain LiveKit credentials using the fetched Agent ID
+        console.log("Requesting LiveKit session...");
         const lkResp = await fetch("https://api.induslabs.io/api/developer/livekit", {
             method: "POST",
             headers: { "Content-Type": "application/json", "accept": "application/json" },
             body: JSON.stringify({
                 api_key: apiKey,
                 agent_id: agentId,
-                customer_number: number
+                customer_number: number || "+919876543210"
             }),
         });
 
-        if (!lkResp.ok) throw new Error("Failed to start LiveKit");
-        const response = await lkResp.json();
-        const { token, livekit_host_url } = response.data || response;
+        if (!lkResp.ok) {
+            const errBody = await lkResp.text();
+            let errorMessage = "Failed to start Voice Agent session.";
+
+            if (lkResp.status === 404) {
+                errorMessage = "Web Voice Agent not found. Please create a 'Web Agent' in your IndusLabs dashboard and try again.";
+                console.error("404 Error: The provided Agent ID is not compatible with WebRTC calling.");
+            }
+
+            throw new Error(`${errorMessage} (${lkResp.status})`);
+        }
+
+        const resJson = await lkResp.json();
+        const responseData = resJson.data || resJson;
+        const { token, livekit_host_url } = responseData;
+        console.log("Got LiveKit Token successfully!");
 
         // 3. Connect to LiveKit room
         let host = livekit_host_url;
