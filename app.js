@@ -897,7 +897,7 @@ async function sendChatMessage() {
         const typingEl = msgs.querySelector('.typing-msg');
         if (typingEl) typingEl.remove();
 
-        const reply = data.reply || data.response || 'Sorry, I could not process that.';
+        const reply = data.reply || data.response || (data.error ? `Error: ${data.error}` : 'Sorry, I could not process that.');
         msgs.innerHTML += `<div class="chat-msg bot"><div class="msg-avatar">🌱</div><div class="msg-bubble">${formatChatReply(reply)}</div></div>`;
         msgs.scrollTop = msgs.scrollHeight;
 
@@ -2340,8 +2340,7 @@ async function triggerGeminiCall() {
                             text: `You are Hardini AI, an expert agricultural assistant designed for Indian farmers. 
                             Strict Rules:
                             1. You must ONLY answer questions related to agriculture, farming, crops, weather, soil, and market prices. If a user asks anything else, politely decline.
-                            2. You must speak primarily in conversational Hindi/Hinglish (e.g., 'Hello, m aapki kesi madad kr skti hu?').
-                            3. Keep responses extremely short, fast, and concise (1-2 sentences max) as this is a real-time voice call.`
+                            2. You are fluent in all Indian languages and dialects (including but not limited to Hindi, Marathi, Telugu, Tamil, Kannada, Punjabi, Bengali, Gujarati, Malayalam, Odiya). You must automatically detect the user's spoken language or dialect and respond fluently in the exact same language (e.g., if asked in pure Marathi, respond in pure Marathi). Keep responses extremely short, fast, and concise (1-2 sentences max) as this is a real-time voice call.`
                         }]
                     }
                 }
