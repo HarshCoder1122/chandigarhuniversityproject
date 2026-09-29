@@ -1,306 +1,194 @@
-# 🌾 Hardini - Agricultural Technology Platform
+<div align="center">
 
-A modern full-stack platform that bridges technology and farming experiences to create sustainable agricultural solutions with YouTube integration and AI-powered farming tools.
+# 🌾 Hardini: Chandigarh University Project
 
-## 🚀 Features
+### Technology meets farming. The Chandigarh University project edition of the Hardini agri-platform.
 
-### Frontend
-- 🌐 Modern, responsive web design
-- 🎥 Instagram-style farming reels (autoplay muted)
-- 🛍️ Comprehensive agricultural marketplace
-- 🤖 AI-powered farming chatbot
-- 📞 Interactive contact forms with maps
-- 📱 Mobile-first responsive layout
+Crop advice in your own language, live mandi prices, soil data, farming reels, a supply-chain view and instant alerts, all in one installable web app. This repository is the Chandigarh University project snapshot; the main, most complete codebase is [hardini](https://github.com/HarshCoder1122/hardini).
 
-### Backend
-- 📺 YouTube API integration for farming videos
-- 🔍 Advanced content filtering and search
-- 🌐 RESTful API architecture
-- 📊 Real-time data processing
-- 🔒 CORS-enabled secure communication
+[![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)](https://developer.mozilla.org/docs/Web/JavaScript)
+[![Node.js](https://img.shields.io/badge/Node.js-Express-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![Firebase](https://img.shields.io/badge/Firebase-Auth%20%26%20RTDB-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com/)
+[![Groq](https://img.shields.io/badge/AI-Groq%20LLM-F55036?style=for-the-badge)](https://groq.com/)
+[![Voice](https://img.shields.io/badge/Voice-LiveKit%20%2B%20IndusLabs-6B4EFF?style=for-the-badge)](https://livekit.io/)
+[![Vercel](https://img.shields.io/badge/Deploy-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://vercel.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 
-### Development
-- ⚡ Concurrent frontend/backend development server
-- 🔄 Hot reload capabilities
-- 📊 Auto-restart server with nodemon
-- 🛠️ Cross-platform compatibility
+[![Stars](https://img.shields.io/github/stars/HarshCoder1122/chandigarhuniversityproject?style=flat-square&color=2E8B57)](https://github.com/HarshCoder1122/chandigarhuniversityproject/stargazers)
+[![Last commit](https://img.shields.io/github/last-commit/HarshCoder1122/chandigarhuniversityproject?style=flat-square)](https://github.com/HarshCoder1122/chandigarhuniversityproject/commits/main)
+[![Issues](https://img.shields.io/github/issues/HarshCoder1122/chandigarhuniversityproject?style=flat-square)](https://github.com/HarshCoder1122/chandigarhuniversityproject/issues)
 
-## 🛠️ Technologies Used
+</div>
 
-### Frontend
-- **HTML5** - Semantic markup
-- **CSS3** - Modern styling with animations
-- **JavaScript ES6+** - Interactive functionality
-- **Google Fonts (Poppins)** - Typography
-- **Font Awesome** - Icons
+## Table of contents
 
-### Backend
-- **Node.js** - Runtime environment
-- **Express.js** - Web framework
-- **YouTube Data API v3** - Video content
-- **Axios** - HTTP client
-- **CORS** - Cross-origin resource sharing
+- [Why](#why)
+- [Features](#features)
+- [Architecture](#architecture)
+- [Tech stack](#tech-stack)
+- [Getting started](#getting-started)
+- [Environment variables](#environment-variables)
+- [SoilProbe IoT (ESP32)](#soilprobe-iot-esp32)
+- [API reference](#api-reference)
+- [Project structure](#project-structure)
+- [Deployment](#deployment)
+- [Security notes](#security-notes)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [License](#license)
 
-### Development Tools
-- **npm** - Package management
-- **concurrently** - Parallel process execution
-- **nodemon** - Auto-restart development server
+## Why
 
-## 📋 Setup & Installation
+Most farmers have a phone but not an agronomist. Advice is slow, generic, and rarely in their own language. Hardini puts an agriculture-only AI assistant that answers in the farmer's language (in native script), real sensor data from their field, and a market and community layer into one app that works on low-end phones.
+
+## Features
+
+| | |
+|---|---|
+| **Hardini AI chat** | Groq-hosted LLM restricted to agriculture, gardening, rural development and weather. Replies in the language you pick, in native script. Accepts photos of crops. |
+| **Voice replies** | Neural text-to-speech (Edge TTS) with voices mapped per Indian language, so answers can be heard, not just read. |
+| **SoilProbe IoT** | Soil-moisture and temperature readings from an ESP32 probe are stored and shown per device. |
+| **Alerts** | Push farm and weather alerts to users. |
+| **Farming reels** | Instagram-style, autoplaying farming videos fetched through the YouTube Data API. |
+| **Mandi prices** | Live market-price lookup through `/api/mandi`. |
+| **Voice agents** | Real-time voice sessions through an IndusLabs LiveKit proxy (`/api/agents`, `/api/livekit`). |
+| **Orders** | Place and list marketplace orders. |
+| **Supply chain** | Track produce from farm to buyer. |
+| **Connect** | Network with fellow farmers and mentors. |
+| **Auth** | Sign in with Firebase Authentication; the backend verifies each request. |
+| **PWA** | Web manifest and service worker for an install-to-home-screen experience. |
+
+## Architecture
+
+```mermaid
+flowchart LR
+    F[Farmer browser<br/>PWA] -->|REST| B[Express API]
+    E[ESP32 SoilProbe] -->|POST /api/soil-readings| B
+    B -->|verify token, data| FB[(Firebase)]
+    B -->|orders, devices, readings| SB[(Supabase)]
+    B -->|chat| G[Groq LLM]
+    B -->|voices| T[Edge TTS]
+    B -->|videos| Y[YouTube Data API]
+```
+
+## Tech stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | HTML5, CSS3, vanilla JavaScript (single-page views), service worker |
+| Backend | Node.js, Express, Axios, `ws` |
+| Auth and data | Firebase (Auth, Realtime Database rules), Supabase |
+| AI and speech | Groq chat completions, `edge-tts-universal`, `google-tts-api` |
+| IoT | ESP32 soil probe (see the setup guide) |
+| Hosting | Vercel |
+
+## Getting started
 
 ### Prerequisites
-- Node.js (v14+ recommended)
-- npm (comes with Node.js)
-- Modern web browser
 
-### Quick Start
+- Node.js 18+ and npm
+- Python 3 (only used to serve the static frontend in development)
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd hardini-app
-   ```
+### Install and run
 
-2. **Install all dependencies**
-   ```bash
-   npm run install:all
-   ```
-
-3. **Start the development servers**
-   ```bash
-   npm start
-   ```
-   Or
-   ```bash
-   npm run dev
-   ```
-
-4. **Access the application**
-   - Frontend: `http://localhost:8000`
-   - Backend API: `http://localhost:3001`
-   - API Health Check: `http://localhost:3001/api/health`
-
-### Manual Commands
-
-**Start both servers concurrently:**
 ```bash
-npm run dev
+git clone https://github.com/HarshCoder1122/chandigarhuniversityproject.git
+cd chandigarhuniversityproject
+npm run install:all
+npm start
 ```
 
-**Start backend only:**
+| Service | URL |
+|---|---|
+| Frontend | http://localhost:8080 |
+| Backend | http://localhost:3001 |
+| Health check | http://localhost:3001/api/health |
+
+Other useful commands:
+
 ```bash
-npm run backend
+npm run backend       # API only
+npm run backend:dev   # API with nodemon hot reload
+npm run frontend      # static frontend only
 ```
 
-**Start backend with hot reload (development):**
-```bash
-npm run backend:dev
-```
+## Environment variables
 
-**Start frontend only:**
-```bash
-npm run frontend
-```
-
-## 📁 Project Structure
-
-```
-hardini-app/
-├── index.html              # Main homepage
-├── styles.css             # Global styles
-├── script.js             # Main script
-├── reels.html            # Reels page
-├── reels.js             # Reels functionality
-├── connect.html         # Connect page
-├── supply-chain.html    # Supply chain page
-├── package.json         # Root package.json
-├── backend/             # Backend application
-│   ├── server.js        # Express server
-│   ├── package.json     # Backend dependencies
-│   └── .env            # Environment variables
-├── assets/              # Static assets
-│   └── seed-icon.svg
-├── images/              # Image assets
-└── README.md           # This file
-```
-
-## 🔧 Environment Configuration
-
-Create `backend/.env` file:
+Create `backend/.env`:
 
 ```env
-YOUTUBE_API_KEY=your_youtube_api_key_here
 PORT=3001
+YOUTUBE_API_KEY=your_youtube_data_api_key
+INDUSLABS_API_KEY=your_induslabs_key
+DATA_GOV_IN_API_KEY=your_data_gov_in_key
+GROQ_API_KEY=your_groq_api_key
+FIREBASE_SERVICE_ACCOUNT=<service-account JSON, or the same JSON base64-encoded>
 ```
 
-**Note:** Get YouTube API key from [Google Cloud Console](https://console.cloud.google.com/)
+Add your Supabase URL and key if you use the orders and device tables. `/api/mandi` reads prices from [data.gov.in](https://data.gov.in/). Never commit `.env` or a service-account file; both are already in [.gitignore](.gitignore).
 
-## 🎯 Usage
+Firebase web configuration for the client lives in [firebase-config.js](firebase-config.js). Web API keys are identifiers, not secrets, but you must restrict them in the Firebase console and enforce access with [database.rules.json](database.rules.json).
 
-### Browsing Reels
-- Reels autoplay muted on the homepage
-- Click any reel to open it with sound
-- Use navigation arrows or swipe to browse
-- Auto-scroll through reels every 8 seconds
+## SoilProbe IoT (ESP32)
 
-### Marketplace
-- Browse agricultural products by category
-- Interactive product cards with ordering
-- Equipment rental with detailed terms
+The [ESP32 Setup Guide](ESP32_SETUP_GUIDE.md) covers a soil probe that reads soil moisture, soil temperature, ambient temperature and humidity and posts them to the backend. The full firmware lives in the main [hardini](https://github.com/HarshCoder1122/hardini) repository.
 
-### Learning Platform
-- Connect with experienced farmers
-- Access mentorship programs
-- AI-powered chatbot for queries
+## API reference
 
-### API Endpoints
-- `GET /api/health` - Server health check
-- `GET /api/reels?limit=N` - Fetch farming videos
-- `GET /api/reels/:videoId` - Get specific video details
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/health` | Service health |
+| `GET` | `/api/reels?limit=N` | Farming videos from YouTube |
+| `POST` | `/api/chat` | Hardini AI reply (`message`, `language`, `image`, `history`, `location`) |
+| `POST` | `/api/tts` | Text to speech audio |
+| `POST` | `/api/alerts` | Send an alert |
+| `GET` | `/api/mandi` | Market (mandi) prices |
+| `POST` | `/api/livekit`, `/api/agents` | Real-time voice session and agent dispatch |
+| `POST` / `GET` | `/api/orders` | Create and list marketplace orders |
+| `POST` / `GET` | `/api/devices` | Register and list IoT devices |
+| `POST` | `/api/soil-readings` | Ingest a sensor reading |
+| `GET` | `/api/soil-readings/:deviceId` | Readings for a device |
 
-## 🚀 Deployment
+Requests other than health and public content are authenticated with a Firebase ID token.
 
-### Production Build
-```bash
-# Backend (consider using PM2)
-npm run backend
+## Project structure
 
-# Frontend can be served statically or through Node.js
+```text
+chandigarhuniversityproject/
+├── index.html, app.js, app.css     # Main single-page app
+├── login.html, hardini-auth.*      # Authentication UI and logic
+├── service-worker.js, manifest.json
+├── firebase-config.js, database.rules.json
+├── backend/                        # Express API (server.js)
+├── api/                            # Vercel serverless functions
+├── ESP32_SETUP_GUIDE.md
+└── vercel.json
 ```
 
-### Docker (Optional)
-Create a `Dockerfile` for containerized deployment.
+## Deployment
 
-## 🔐 Supabase Authentication Setup
+The repo is set up for [Vercel](https://vercel.com/) ([vercel.json](vercel.json)); deploy the frontend and `backend/` and add the environment variables in the project settings. The backend is also a plain Express app and runs on any Node host.
 
-### 1. Create Supabase Project
+## Security notes
 
-1. Go to [Supabase](https://supabase.com)
-2. Sign up/Login to your account
-3. Click "New Project"
-4. Choose your organization
-5. Fill in project details:
-   - **Name**: Hardini (or your preferred name)
-   - **Database Password**: Choose a strong password
-   - **Region**: Choose the closest region to your users
+- Keep every API key in environment variables. If a key has ever been committed, rotate it.
+- Restrict Firebase and Google API keys by domain or API in their consoles.
+- Report vulnerabilities privately; see [SECURITY.md](SECURITY.md).
 
-### 2. Get Project Keys
+## Roadmap
 
-After project creation, go to Settings > API and copy:
+- [ ] Remove hardcoded fallback keys from source
+- [ ] Add automated tests for the API
+- [ ] Offline mode for chat history and cached advice
+- [ ] Crop-disease detection from photos
+- [ ] More regional languages and voices
 
-- **Project URL** (e.g., `https://abcdefghijklmnop.supabase.co`)
-- **Anon Public Key** (starts with `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`)
+## Contributing
 
-### 3. Configure Authentication
+Contributions are welcome, especially language support and sensor integrations. Please read [CONTRIBUTING.md](CONTRIBUTING.md) and follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
-In your project dashboard:
+## License
 
-1. **Enable Authentication Providers**:
-   - Go to Settings > Authentication
-   - Enable Email Auth
-   - Optionally enable Google OAuth (for Google login)
+Released under the [MIT License](LICENSE).
 
-2. **Configure Google OAuth** (optional):
-   - Go to Settings > Authentication > Providers
-   - Click "Google"
-   - Add your Google OAuth credentials
-   - Set redirect URL to your domain + /auth/callback
-
-### 4. Set Up Database Tables
-
-Run these SQL commands in the Supabase SQL Editor:
-
-```sql
--- Profiles table (extends auth.users)
-CREATE TABLE profiles (
-  id UUID REFERENCES auth.users(id) PRIMARY KEY,
-  full_name TEXT,
-  phone TEXT,
-  user_type TEXT DEFAULT 'customer',
-  farming_experience TEXT,
-  location TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Orders table
-CREATE TABLE orders (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES auth.users(id),
-  items JSONB,
-  total_amount DECIMAL(10,2),
-  status TEXT DEFAULT 'pending',
-  payment_method TEXT,
-  delivery_address TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Farms table (for farmer users)
-CREATE TABLE farms (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES auth.users(id),
-  farm_name TEXT,
-  location TEXT,
-  land_size DECIMAL(10,2),
-  crop_types TEXT[],
-  farming_type TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Enable Row Level Security (RLS)
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
-ALTER TABLE farms ENABLE ROW LEVEL SECURITY;
-
--- Create policies (users can only access their own data)
-CREATE POLICY "Users can view own profile" ON profiles
-  FOR SELECT USING (auth.uid() = id);
-
-CREATE POLICY "Users can update own profile" ON profiles
-  FOR UPDATE USING (auth.uid() = id);
-
-CREATE POLICY "Users can view own orders" ON orders
-  FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can view own farms" ON farms
-  FOR SELECT USING (auth.uid() = user_id);
-```
-
-### 5. Update Configuration
-
-In `index.html`, find and replace these placeholders in the Supabase script:
-
-```javascript
-const SUPABASE_URL = 'https://abcdefghijklmnop.supabase.co'; // Replace with your actual URL
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'; // Replace with your actual key
-```
-
-### 6. Enable Email Confirmation (Optional)
-
-In Supabase Dashboard > Settings > Authentication:
-- Enable "Enable email confirmations" if you want users to verify emails
-- Set Site URL to your domain
-- Set Redirect URLs for OAuth
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## 📄 License
-
-MIT License - see LICENSE file for details
-
-## 📞 Contact
-
-Hardini Technologies
-- Website: [Coming Soon]
-- Email: info@hardini.com
-- Support: support@hardini.com
-
----
-
-**Built with ❤️ for sustainable agriculture** 🌱🚀
+<div align="center"><sub>Built by <a href="https://github.com/HarshCoder1122">Harsh</a> for the people who feed us.</sub></div>
